@@ -45,20 +45,13 @@ int main(int argc, char *argv[])
 
     float camera_move_speed = 10.f;
 
-    math::Vector3 initial_camera_position = { 0, 0, 30 };
-
-    math::Quat initial_camera_rotation =
-        (math::Quat::angleAxis(-math::pi / 2.f, math::up) *
-        math::Quat::angleAxis(-math::pi / 2.f, math::right)).normalize();
-
-
     // Create the viewer viewer
     viz::Viewer viewer(mgr.getRenderManager(), window.get(), {
         .numWorlds = num_worlds,
         .simTickRate = 120,
         .cameraMoveSpeed = camera_move_speed * 7.f,
-        .cameraPosition = initial_camera_position,
-        .cameraRotation = initial_camera_rotation,
+        .cameraPosition = { 41.899895f, -57.452969f, 33.152081f },
+        .cameraRotation = { 0.944346f, -0.054453f, -0.018675f, 0.323878f },
     });
 
     // Main loop for the viewer viewer
