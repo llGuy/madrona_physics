@@ -1,0 +1,11 @@
+#pragma once
+
+#include <madrona/types.hpp>
+
+namespace madEscape {
+
+namespace consts {
+inline constexpr float deltaT = 0.04f;
+}
+
+}
