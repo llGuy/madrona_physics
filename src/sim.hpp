@@ -60,6 +60,7 @@ struct Sim : public madrona::WorldBase {
     madrona::RNG rng;
 
     Entity stick;
+    Entity plane;
 };
 
 class Engine : public ::madrona::CustomContext<Engine, Sim> {

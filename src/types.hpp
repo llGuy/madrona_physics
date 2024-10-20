@@ -18,7 +18,7 @@ using madrona::base::Rotation;
 using madrona::base::Scale;
 using madrona::base::ObjectID;
 
-struct Stick : public madrona::Archetype<
+struct RigidBody : public madrona::Archetype<
     Position,
     Rotation,
     Scale,

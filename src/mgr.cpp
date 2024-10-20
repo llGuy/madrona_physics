@@ -1,6 +1,5 @@
 #include "mgr.hpp"
 #include "sim.hpp"
-#include "import.hpp"
 
 #include <random>
 #include <numeric>
@@ -144,7 +143,9 @@ static imp::ImportedAssets loadAssets(
                 true);
 
         render_mgr->configureLighting({
-            { true, math::Vector3{1.0f, 1.0f, -2.0f}, math::Vector3{1.0f, 1.0f, 1.0f} }
+            { true, 
+              math::Vector3{1.0f, 1.0f, -2.0f}, 
+              math::Vector3{1.0f, 1.0f, 1.0f} }
         });
     }
 

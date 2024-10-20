@@ -25,7 +25,7 @@ void Sim::registerTypes(ECSRegistry &registry, const Config &cfg)
 
     RenderingSystem::registerTypes(registry, cfg.renderBridge);
 
-    registry.registerArchetype<Stick>();
+    registry.registerArchetype<RigidBody>();
 }
 
 #define DYNAMIC_MOVEMENT
@@ -71,6 +71,30 @@ Sim::Sim(Engine &ctx,
         0, (uint32_t)ctx.worldID().idx));
 
     RenderingSystem::init(ctx, cfg.renderBridge);
+
+
+
+    { // Make the stick
+        stick = ctx.makeRenderableEntity<RigidBody>();
+        ctx.get<Position>(stick) = Vector3 {
+            0.f, 0.f, 40.f,
+        };
+        ctx.get<Rotation>(stick) = Quat::angleAxis(
+                0.5f, { 1.f, 1.f, 1.f, });
+        ctx.get<Scale>(stick) = Diag3x3 { 1.f, 1.f, 10.f, };
+        ctx.get<ObjectID>(stick) = { (uint32_t)SimObject::Stick };
+    }
+
+    { // Make the plane
+        plane = ctx.makeRenderableEntity<RigidBody>();
+        ctx.get<Position>(plane) = Vector3 {
+            0.f, 0.f, 1.f,
+        };
+        ctx.get<Rotation>(plane) = Quat::angleAxis(
+                0.f, { 0.f, 0.f, 1.f, });
+        ctx.get<Scale>(plane) = Diag3x3 { 0.01f, 0.01f, 0.01f, };
+        ctx.get<ObjectID>(plane) = { (uint32_t)SimObject::Plane };
+    }
 }
 
 // This declaration is needed for the GPU backend in order to generate the
