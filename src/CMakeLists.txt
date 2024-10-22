@@ -1,5 +1,4 @@
 set(STICK_SIMULATOR_SRCS
-    types.hpp
     sim.hpp sim.inl sim.cpp
 )
 

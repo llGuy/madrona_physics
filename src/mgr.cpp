@@ -101,13 +101,13 @@ static inline Optional<render::RenderManager> initRenderManager(
     });
 }
 
-static imp::ImportedAssets loadAssets(
+static imp::ImportedAssets loadRenderAssets(
         Optional<render::RenderManager> &render_mgr)
 {
     std::array<std::string, (size_t)SimObject::NumObjects> render_asset_paths;
 
     render_asset_paths[(size_t)SimObject::Stick] =
-        (std::filesystem::path(DATA_DIR) / "cylinder.obj").string();
+        (std::filesystem::path(DATA_DIR) / "cylinder_render.obj").string();
     render_asset_paths[(size_t)SimObject::Plane] =
         (std::filesystem::path(DATA_DIR) / "plane.obj").string();
 
@@ -150,6 +150,89 @@ static imp::ImportedAssets loadAssets(
     }
 
     return std::move(*render_assets);
+}
+
+static void loadPhysicsAssets(PhysicsLoader &loader)
+{
+    SourceCollisionPrimitive plane_prim {
+        .type = CollisionPrimitive::Type::Plane,
+    };
+
+    imp::AssetImporter importer;
+
+    char import_err_buffer[4096];
+    auto imported_hulls = importer.importFromDisk({
+        (std::filesystem::path(DATA_DIR) / "cylinder_collision.obj").string().c_str(),
+    }, import_err_buffer, true);
+
+    if (!imported_hulls.has_value()) {
+        FATAL("%s", import_err_buffer);
+    }
+
+    DynArray<imp::SourceMesh> src_convex_hulls(
+        imported_hulls->objects.size());
+
+    DynArray<DynArray<SourceCollisionPrimitive>> prim_arrays(0);
+    HeapArray<SourceCollisionObject> src_objs(imported_hulls->objects.size() + 1);
+
+    // Plane (1)
+    src_objs[1] = {
+        .prims = Span<const SourceCollisionPrimitive>(&plane_prim, 1),
+        .invMass = 0.f,
+        .friction = {
+            .muS = 2.f,
+            .muD = 2.f,
+        },
+    };
+
+    auto setupHull = [&](CountT obj_idx, float inv_mass,
+                         RigidBodyFrictionData friction) {
+        auto meshes = imported_hulls->objects[obj_idx].meshes;
+        DynArray<SourceCollisionPrimitive> prims(meshes.size());
+
+        for (const imp::SourceMesh &mesh : meshes) {
+            src_convex_hulls.push_back(mesh);
+            prims.push_back({
+                .type = CollisionPrimitive::Type::Hull,
+                .hullInput = {
+                    .hullIDX = uint32_t(src_convex_hulls.size() - 1),
+                },
+            });
+        }
+
+        prim_arrays.emplace_back(std::move(prims));
+
+        return SourceCollisionObject {
+            .prims = Span<const SourceCollisionPrimitive>(prim_arrays.back()),
+            .invMass = inv_mass,
+            .friction = friction,
+        };
+    };
+
+    { // Cylinder (0)
+        src_objs[0] = setupHull(0, 0.5f, {
+            .muS = 0.5f,
+            .muD = 2.f,
+        });
+    }
+
+    StackAlloc tmp_alloc;
+    RigidBodyAssets rigid_body_assets;
+    CountT num_rigid_body_data_bytes;
+    void *rigid_body_data = RigidBodyAssets::processRigidBodyAssets(
+        src_convex_hulls,
+        src_objs,
+        false,
+        tmp_alloc,
+        &rigid_body_assets,
+        &num_rigid_body_data_bytes);
+
+    if (rigid_body_data == nullptr) {
+        FATAL("Invalid collision hull input");
+    }
+
+    loader.loadRigidBodies(rigid_body_assets);
+    free(rigid_body_data);
 }
 
 struct Manager::Impl {
@@ -211,13 +294,19 @@ Manager::Impl * Manager::Impl::init(
 #ifdef MADRONA_CUDA_SUPPORT
         CUcontext cu_ctx = MWCudaExecutor::initCUDA(mgr_cfg.gpuID);
 
+        PhysicsLoader phys_loader(mgr_cfg.execMode, 10);
+        loadPhysicsAssets(phys_loader);
+
+        ObjectManager *phys_obj_mgr = &phys_loader.getObjectManager();
+        sim_cfg.rigidBodyObjMgr = phys_obj_mgr;
+
         Optional<RenderGPUState> render_gpu_state =
             initRenderGPUState(mgr_cfg);
 
         Optional<render::RenderManager> render_mgr =
             initRenderManager(mgr_cfg, render_gpu_state);
 
-        auto imported_assets = loadAssets(
+        auto imported_assets = loadRenderAssets(
                 render_mgr);
 
         if (render_mgr.has_value()) {

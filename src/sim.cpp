@@ -2,6 +2,7 @@
 #include <madrona/mw_gpu_entry.hpp>
 
 #include "sim.hpp"
+#include "consts.hpp"
 
 #ifdef MADRONA_GPU_MODE
 #include <madrona/mw_gpu/host_print.hpp>
@@ -14,8 +15,12 @@ using namespace madrona;
 using namespace madrona::math;
 
 namespace RenderingSystem = madrona::render::RenderingSystem;
+namespace PhysicsSystem = madrona::phys::PhysicsSystem;
 
 namespace madEscape {
+
+constexpr inline CountT numPhysicsSubsteps = 1;
+constexpr inline auto physicsSolverSelector = PhysicsSystem::Solver::XPBD;
 
 // Register all the ECS components and archetypes that will be
 // used in the simulation
@@ -23,9 +28,10 @@ void Sim::registerTypes(ECSRegistry &registry, const Config &cfg)
 {
     base::registerTypes(registry);
 
+    PhysicsSystem::registerTypes(registry, physicsSolverSelector);
     RenderingSystem::registerTypes(registry, cfg.renderBridge);
 
-    registry.registerArchetype<RigidBody>();
+    registry.registerArchetype<DynamicObject>();
 }
 
 #define DYNAMIC_MOVEMENT
@@ -50,9 +56,20 @@ static void setupStepTasks(TaskGraphBuilder &builder,
 {
     (void)cfg;
 
+#if 0
+    auto broadphase_setup_sys = phys::PhysicsSystem::setupBroadphaseTasks(
+            builder, {});
+
+    auto substep_sys = PhysicsSystem::setupPhysicsStepTasks(builder,
+        {broadphase_setup_sys}, numPhysicsSubsteps, physicsSolverSelector);
+
+    auto physics_cleanup = phys::PhysicsSystem::setupCleanupTasks(
+        builder, {substep_sys});
+#endif
+
     // For now the step does nothing but just setup the rendering tasks
     // for the visualizer.
-    RenderingSystem::setupTasks(builder, {});
+    auto render_sys = RenderingSystem::setupTasks(builder, {/*physics_cleanup*/});
 }
 
 // Build the task graph
@@ -70,12 +87,16 @@ Sim::Sim(Engine &ctx,
     ctx.data().rng = RNG(rand::split_i(ctx.data().initRandKey,
         0, (uint32_t)ctx.worldID().idx));
 
+    PhysicsSystem::init(ctx, cfg.rigidBodyObjMgr, 
+                        consts::deltaT, 1,
+                        -9.8f * math::up, 2,
+                        physicsSolverSelector);
     RenderingSystem::init(ctx, cfg.renderBridge);
 
 
 
     { // Make the stick
-        stick = ctx.makeRenderableEntity<RigidBody>();
+        stick = ctx.makeRenderableEntity<DynamicObject>();
         ctx.get<Position>(stick) = Vector3 {
             0.f, 0.f, 40.f,
         };
@@ -86,7 +107,7 @@ Sim::Sim(Engine &ctx,
     }
 
     { // Make the plane
-        plane = ctx.makeRenderableEntity<RigidBody>();
+        plane = ctx.makeRenderableEntity<DynamicObject>();
         ctx.get<Position>(plane) = Vector3 {
             0.f, 0.f, 1.f,
         };

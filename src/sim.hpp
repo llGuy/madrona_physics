@@ -3,14 +3,25 @@
 #include <madrona/taskgraph_builder.hpp>
 #include <madrona/custom_context.hpp>
 #include <madrona/rand.hpp>
+#include <madrona/physics.hpp>
+#include <madrona/cvphysics.hpp>
+#include <madrona/render/ecs.hpp>
 
 #include "consts.hpp"
-#include "types.hpp"
 
 
 namespace madEscape {
 
 class Engine;
+
+// Include several madrona types into the simulator namespace for convenience
+using madrona::Entity;
+using madrona::RandKey;
+using madrona::CountT;
+using madrona::base::Position;
+using madrona::base::Rotation;
+using madrona::base::Scale;
+using madrona::base::ObjectID;
 
 // This enum is used by the Sim and Manager classes to track the export slots
 // for each component exported to the training code.
@@ -30,6 +41,16 @@ enum class SimObject : uint32_t {
     NumObjects
 };
 
+struct DynamicObject : public madrona::Archetype<
+    madrona::phys::RigidBody,
+
+    // For now, we declare this as separate from the RigidBody. Though,
+    // in the future, may merge. Still experimenting.
+    // madrona::phys::cv::CVPhysicalComponent,
+    // Rotation,
+    madrona::render::Renderable
+> {};
+
 // The Sim class encapsulates the per-world state of the simulation.
 // Sim is always available by calling ctx.data() given a reference
 // to the Engine / Context object that is passed to each ECS system.
@@ -41,6 +62,8 @@ struct Sim : public madrona::WorldBase {
     struct Config {
         bool autoReset;
         RandKey initRandKey;
+
+        madrona::phys::ObjectManager *rigidBodyObjMgr;
         const madrona::render::RenderECSBridge *renderBridge;
     };
 
