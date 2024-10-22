@@ -13,6 +13,7 @@
 
 using namespace madrona;
 using namespace madrona::math;
+using namespace madrona::phys;
 
 namespace RenderingSystem = madrona::render::RenderingSystem;
 namespace PhysicsSystem = madrona::phys::PhysicsSystem;
@@ -20,7 +21,7 @@ namespace PhysicsSystem = madrona::phys::PhysicsSystem;
 namespace madEscape {
 
 constexpr inline CountT numPhysicsSubsteps = 1;
-constexpr inline auto physicsSolverSelector = PhysicsSystem::Solver::XPBD;
+constexpr inline auto physicsSolverSelector = PhysicsSystem::Solver::Convex;
 
 // Register all the ECS components and archetypes that will be
 // used in the simulation
@@ -56,7 +57,7 @@ static void setupStepTasks(TaskGraphBuilder &builder,
 {
     (void)cfg;
 
-#if 0
+#if 1
     auto broadphase_setup_sys = phys::PhysicsSystem::setupBroadphaseTasks(
             builder, {});
 
@@ -69,13 +70,42 @@ static void setupStepTasks(TaskGraphBuilder &builder,
 
     // For now the step does nothing but just setup the rendering tasks
     // for the visualizer.
-    auto render_sys = RenderingSystem::setupTasks(builder, {/*physics_cleanup*/});
+    auto render_sys = RenderingSystem::setupTasks(builder, {physics_cleanup});
+
+    (void)render_sys;
 }
 
 // Build the task graph
 void Sim::setupTasks(TaskGraphManager &taskgraph_mgr, const Config &cfg)
 {
     setupStepTasks(taskgraph_mgr.init(TaskGraphID::Step), cfg);
+}
+
+static Entity makeDynObject(Engine &ctx,
+                            Vector3 pos,
+                            Quat rot,
+                            Diag3x3 scale,
+                            ResponseType type,
+                            SimObject obj)
+{
+    Entity e = ctx.makeRenderableEntity<DynamicObject>();
+    ctx.get<Position>(e) = pos;
+    ctx.get<Rotation>(e) = rot;
+    ctx.get<Scale>(e) = scale;
+    ObjectID e_obj_id = ObjectID { (int32_t)obj };
+    ctx.get<ObjectID>(e) = e_obj_id;
+    ctx.get<phys::broadphase::LeafID>(e) =
+        PhysicsSystem::registerEntity(ctx, e, e_obj_id);
+
+    ctx.get<Velocity>(e) = {
+        Vector3::zero(),
+        Vector3::zero(),
+    };
+    ctx.get<ResponseType>(e) = type;
+    ctx.get<ExternalForce>(e) = Vector3::zero();
+    ctx.get<ExternalTorque>(e) = Vector3::zero();
+
+    return e;
 }
 
 Sim::Sim(Engine &ctx,
@@ -96,25 +126,21 @@ Sim::Sim(Engine &ctx,
 
 
     { // Make the stick
-        stick = ctx.makeRenderableEntity<DynamicObject>();
-        ctx.get<Position>(stick) = Vector3 {
-            0.f, 0.f, 40.f,
-        };
-        ctx.get<Rotation>(stick) = Quat::angleAxis(
-                0.5f, { 1.f, 1.f, 1.f, });
-        ctx.get<Scale>(stick) = Diag3x3 { 1.f, 1.f, 10.f, };
-        ctx.get<ObjectID>(stick) = { (uint32_t)SimObject::Stick };
+        stick = makeDynObject(ctx,
+                              Vector3{ 0.f, 0.f, 40.f },
+                              Quat::angleAxis(0.5f, { 1.f, 1.f, 1.f }),
+                              Diag3x3{ 1.f, 1.f, 10.f },
+                              ResponseType::Dynamic,
+                              SimObject::Stick);
     }
 
     { // Make the plane
-        plane = ctx.makeRenderableEntity<DynamicObject>();
-        ctx.get<Position>(plane) = Vector3 {
-            0.f, 0.f, 1.f,
-        };
-        ctx.get<Rotation>(plane) = Quat::angleAxis(
-                0.f, { 0.f, 0.f, 1.f, });
-        ctx.get<Scale>(plane) = Diag3x3 { 0.01f, 0.01f, 0.01f, };
-        ctx.get<ObjectID>(plane) = { (uint32_t)SimObject::Plane };
+        stick = makeDynObject(ctx,
+                              Vector3{ 0.f, 0.f, 1.f },
+                              Quat::angleAxis(0.5f, { 0.f, 0.f, 1.f }),
+                              Diag3x3{ 0.01f, 0.01f, 0.01f },
+                              ResponseType::Static,
+                              SimObject::Plane);
     }
 }
 
