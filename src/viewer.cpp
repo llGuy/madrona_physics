@@ -19,11 +19,21 @@ int main(int argc, char *argv[])
     using namespace madEscape;
 
     uint32_t num_worlds = 1;
-    if (argc < 2) {
-        printf("./stick_viewer [num_worlds]\n");
+    madrona::ExecMode exec_mode = madrona::ExecMode::CPU;
+
+    if (argc < 3) {
+        printf("./stick_viewer [cpu|cuda] [num_worlds]\n");
         return -1;
     } else {
-        num_worlds = std::stoi(argv[1]);
+        if (!strcmp(argv[1], "cuda")) {
+            exec_mode = madrona::ExecMode::CUDA;
+        } else if (!strcmp(argv[1], "cpu")) {
+            exec_mode = madrona::ExecMode::CPU;
+        } else {
+            FATAL("Invalid exec mode\n");
+        }
+
+        num_worlds = std::stoi(argv[2]);
     }
 
     WindowManager wm {};
@@ -34,7 +44,7 @@ int main(int argc, char *argv[])
 
     // Create the simulation manager
     Manager mgr({
-        .execMode = madrona::ExecMode::CUDA,
+        .execMode = exec_mode,
         .gpuID = 0,
         .numWorlds = num_worlds,
         .randSeed = 5,
@@ -55,11 +65,11 @@ int main(int argc, char *argv[])
 
     // Main loop for the viewer viewer
     viewer.loop(
-        [&mgr](CountT world_idx, const Viewer::UserInput &input) {
+        [&mgr](CountT /* world_idx */, const Viewer::UserInput &/* input */) {
             // No input
         }
-        , [&mgr](CountT world_idx, CountT agent_idx,
-               const Viewer::UserInput &input) {
+        , [&mgr](CountT /* world_idx */, CountT /* agent_idx */,
+               const Viewer::UserInput & /* input */) {
             // No input
         }, [&]() {
             mgr.step();

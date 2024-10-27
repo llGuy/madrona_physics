@@ -63,7 +63,7 @@ if (TARGET madrona_viz)
         PUBLIC
         stick_mgr
         PRIVATE
-        madrona_mw_core madrona_viz madrona_cuda stb)
+        madrona_mw_core madrona_viz stb)
 
     target_compile_definitions(stick_viewer PUBLIC
         -DMADRONA_VIEWER

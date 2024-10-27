@@ -278,9 +278,33 @@ struct Manager::CUDAImpl final : Manager::Impl {
         gpuExec.run(stepGraph);
     }
 };
-#else
-static_assert(false, "CPU backend hasn't been implemented yet");
 #endif
+
+struct Manager::CPUImpl final : Manager::Impl {
+    using TaskGraphT =
+        TaskGraphExecutor<Engine, Sim, Sim::Config, Sim::WorldInit>;
+
+    TaskGraphT cpuExec;
+    PhysicsLoader physLoader;
+
+    inline CPUImpl(const Manager::Config &mgr_cfg,
+                   PhysicsLoader &&phys_loader,
+                   Optional<RenderGPUState> &&render_gpu_state,
+                   Optional<render::RenderManager> &&render_mgr,
+                   TaskGraphT &&cpu_exec)
+        : Impl(mgr_cfg,
+               std::move(render_gpu_state), std::move(render_mgr)),
+          cpuExec(std::move(cpu_exec)),
+          physLoader(std::move(phys_loader))
+    {}
+
+    inline virtual ~CPUImpl() final {}
+
+    inline virtual void run()
+    {
+        cpuExec.run();
+    }
+};
 
 Manager::Impl * Manager::Impl::init(
     const Manager::Config &mgr_cfg)
@@ -350,7 +374,47 @@ Manager::Impl * Manager::Impl::init(
 #endif
     } break;
     case ExecMode::CPU: {
-        FATAL("CPU backend not implemented yet");
+        // Hello
+        PhysicsLoader phys_loader(ExecMode::CPU, 10);
+        loadPhysicsAssets(phys_loader);
+
+        ObjectManager *phys_obj_mgr = &phys_loader.getObjectManager();
+        sim_cfg.rigidBodyObjMgr = phys_obj_mgr;
+
+        Optional<RenderGPUState> render_gpu_state =
+            initRenderGPUState(mgr_cfg);
+
+        Optional<render::RenderManager> render_mgr =
+            initRenderManager(mgr_cfg, render_gpu_state);
+
+        auto imported_assets = loadRenderAssets(
+                render_mgr);
+
+        if (render_mgr.has_value()) {
+            sim_cfg.renderBridge = render_mgr->bridge();
+        } else {
+            sim_cfg.renderBridge = nullptr;
+        }
+
+        HeapArray<Sim::WorldInit> world_inits(mgr_cfg.numWorlds);
+
+        CPUImpl::TaskGraphT cpu_exec {
+            ThreadPoolExecutor::Config {
+                .numWorlds = mgr_cfg.numWorlds,
+                .numExportedBuffers = (uint32_t)ExportID::NumExports,
+            },
+            sim_cfg,
+            world_inits.data(),
+            (uint32_t)TaskGraphID::NumTaskGraphs,
+        };
+
+        return new CPUImpl {
+            mgr_cfg,
+            std::move(phys_loader),
+            std::move(render_gpu_state),
+            std::move(render_mgr),
+            std::move(cpu_exec)
+        };
     } break;
     default: MADRONA_UNREACHABLE();
     }
