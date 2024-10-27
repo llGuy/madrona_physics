@@ -90,7 +90,7 @@ static Entity makeDynObject(Engine &ctx,
 {
     Entity e = ctx.makeRenderableEntity<DynamicObject>();
     ctx.get<Position>(e) = pos;
-    ctx.get<Rotation>(e) = rot;
+    ctx.get<Rotation>(e) = rot.normalize();
     ctx.get<Scale>(e) = scale;
     ObjectID e_obj_id = ObjectID { (int32_t)obj };
     ctx.get<ObjectID>(e) = e_obj_id;
@@ -119,7 +119,7 @@ Sim::Sim(Engine &ctx,
     ctx.data().rng = RNG(rand::split_i(ctx.data().initRandKey,
         0, (uint32_t)ctx.worldID().idx));
 
-    PhysicsSystem::init(ctx, cfg.rigidBodyObjMgr, 
+    PhysicsSystem::init(ctx, cfg.rigidBodyObjMgr,
                         consts::deltaT, 1,
                         -9.8f * math::up, 2,
                         physicsSolverSelector);
