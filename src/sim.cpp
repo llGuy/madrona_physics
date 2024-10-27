@@ -16,7 +16,7 @@ using namespace madrona::math;
 using namespace madrona::phys;
 
 namespace RenderingSystem = madrona::render::RenderingSystem;
-namespace PhysicsSystem = madrona::phys::PhysicsSystem;
+// namespace PhysicsSystem = madrona::phys::PhysicsSystem;
 
 namespace madEscape {
 
@@ -137,7 +137,7 @@ Sim::Sim(Engine &ctx,
     }
 
     { // Make the plane
-        stick = makeDynObject(ctx,
+        plane = makeDynObject(ctx,
                               Vector3{ 0.f, 0.f, 1.f },
                               Quat::angleAxis(0.5f, { 0.f, 0.f, 1.f }),
                               Diag3x3{ 0.01f, 0.01f, 0.01f },
