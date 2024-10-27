@@ -94,8 +94,10 @@ static Entity makeDynObject(Engine &ctx,
     ctx.get<Scale>(e) = scale;
     ObjectID e_obj_id = ObjectID { (int32_t)obj };
     ctx.get<ObjectID>(e) = e_obj_id;
+
     ctx.get<phys::broadphase::LeafID>(e) =
-        PhysicsSystem::registerEntity(ctx, e, e_obj_id);
+        PhysicsSystem::registerEntity(ctx, e, e_obj_id,
+                                      physicsSolverSelector);
 
     ctx.get<Velocity>(e) = {
         Vector3::zero(),
