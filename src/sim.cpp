@@ -129,9 +129,9 @@ Sim::Sim(Engine &ctx,
 
     { // Make the stick
         stick = makeDynObject(ctx,
-                              Vector3{ 0.f, 0.f, 40.f },
-                              Quat::angleAxis(0.5f, { 1.f, 1.f, 1.f }),
-                              Diag3x3{ 1.f, 1.f, 10.f },
+                              Vector3{ 0.f, 0.f, 2.01f },
+                              {0.5f, 0.5f, 0.5f, 0.5f},
+                              Diag3x3{ 1.f, 1.f, 1.f },
                               ResponseType::Dynamic,
                               SimObject::Stick);
     }
