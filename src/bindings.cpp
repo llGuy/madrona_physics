@@ -30,8 +30,6 @@ float *cvxSolveCall(void *vdata,
 
     using Tensor = nb::ndarray<float, nb::numpy, nb::shape<>>;
 
-    printf("%u %u %u\n", a_rows, a_cols, v0_rows);
-
     Tensor a_tensor(
         a_data,
         { a_rows, a_cols },
@@ -50,7 +48,21 @@ float *cvxSolveCall(void *vdata,
         nb::device::cpu::value
     );
 
-    data->call(a_tensor, v0_tensor);
+    float *ret_data = new float[3];
+    ret_data[0] = ret_data[1] = ret_data[2] = 0.f;
+
+    Tensor ret_tensor(
+        ret_data,
+        { 3 },
+        {},
+        {},
+        nb::dtype<float>(),
+        nb::device::cpu::value
+    );
+
+    data->call(a_tensor, v0_tensor, ret_tensor);
+
+    printf("%f %f %f\n", ret_data[0], ret_data[1], ret_data[2]);
 
     return nullptr;
 }

@@ -130,8 +130,8 @@ Sim::Sim(Engine &ctx,
 
     { // Make the stick
         stick = makeDynObject(ctx,
-                              Vector3{ 0.f, 0.f, 2.01f },
-                              {0.5f, 0.5f, 0.5f, 0.5f},
+                              Vector3{ 0.f, 0.f, 10.01f },
+                              {0.5f, 0.9f, 0.5f, 0.5f},
                               Diag3x3{ 1.f, 1.f, 1.f },
                               ResponseType::Dynamic,
                               SimObject::Stick);
