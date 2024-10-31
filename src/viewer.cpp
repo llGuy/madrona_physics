@@ -16,7 +16,7 @@ using namespace madrona::viz;
 
 int main(int argc, char *argv[])
 {
-    using namespace madEscape;
+    using namespace madPhysics;
 
     uint32_t num_worlds = 1;
     madrona::ExecMode exec_mode = madrona::ExecMode::CPU;

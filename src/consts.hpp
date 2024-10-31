@@ -2,7 +2,7 @@
 
 #include <madrona/types.hpp>
 
-namespace madEscape {
+namespace madPhysics {
 
 namespace consts {
 inline constexpr float deltaT = 0.04f;

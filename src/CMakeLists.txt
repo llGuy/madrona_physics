@@ -76,3 +76,11 @@ if (TARGET madrona_viz)
         -DDATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/../data/"
     )
 endif()
+
+madrona_python_module(madrona_stick
+    bindings.cpp
+)
+
+target_link_libraries(madrona_stick PRIVATE
+    stick_mgr madrona_viz
+)

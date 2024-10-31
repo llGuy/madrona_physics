@@ -1,10 +1,11 @@
 #include <memory>
 
 #include <madrona/exec_mode.hpp>
-
 #include <madrona/render/render_mgr.hpp>
 
-namespace madEscape {
+#include <madrona/physics.hpp>
+
+namespace madPhysics {
 
 // The Manager class encapsulates the linkage between the outside training
 // code and the internal simulation state (src/sim.hpp / src/sim.cpp)
@@ -21,6 +22,7 @@ public:
         uint32_t randSeed; // Seed for random world gen
         madrona::render::APIBackend *extRenderAPI = nullptr;
         madrona::render::GPUDevice *extRenderDev = nullptr;
+        madrona::phys::CVXSolve *cvxSolve = nullptr;
         bool headlessMode = false;
     };
 

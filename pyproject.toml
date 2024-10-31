@@ -1,0 +1,12 @@
+[build-system]
+requires = []
+build-backend = "madrona-py-build"
+backend-path = ["external/madrona/py"]
+
+[project]
+name = "madrona_stick"
+version = "0.0.1"
+
+[tool.madrona.packages.madrona_stick]
+ext-only = true
+ext-out-dir = "build"
