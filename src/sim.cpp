@@ -18,7 +18,7 @@ using namespace madrona::phys;
 namespace RenderingSystem = madrona::render::RenderingSystem;
 // namespace PhysicsSystem = madrona::phys::PhysicsSystem;
 
-namespace madEscape {
+namespace madPhysics {
 
 constexpr inline CountT numPhysicsSubsteps = 1;
 constexpr inline auto physicsSolverSelector = PhysicsSystem::Solver::Convex;
@@ -122,7 +122,8 @@ Sim::Sim(Engine &ctx,
     PhysicsSystem::init(ctx, cfg.rigidBodyObjMgr,
                         consts::deltaT, 1,
                         -9.8f * math::up, 2,
-                        physicsSolverSelector);
+                        physicsSolverSelector,
+                        cfg.cvxSolve);
     RenderingSystem::init(ctx, cfg.renderBridge);
 
 

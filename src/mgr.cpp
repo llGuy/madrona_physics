@@ -34,7 +34,7 @@ using namespace madrona::math;
 using namespace madrona::phys;
 using namespace madrona::render;
 
-namespace madEscape {
+namespace madPhysics {
 
 struct RenderGPUState {
     render::APILibHandle apiLib;
@@ -312,6 +312,7 @@ Manager::Impl * Manager::Impl::init(
     Sim::Config sim_cfg;
     sim_cfg.autoReset = false;
     sim_cfg.initRandKey = rand::initKey(mgr_cfg.randSeed);
+    sim_cfg.cvxSolve = mgr_cfg.cvxSolve;
 
     switch (mgr_cfg.execMode) {
     case ExecMode::CUDA: {

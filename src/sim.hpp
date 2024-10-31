@@ -9,8 +9,7 @@
 
 #include "consts.hpp"
 
-
-namespace madEscape {
+namespace madPhysics {
 
 class Engine;
 
@@ -65,6 +64,10 @@ struct Sim : public madrona::WorldBase {
 
         madrona::phys::ObjectManager *rigidBodyObjMgr;
         const madrona::render::RenderECSBridge *renderBridge;
+
+#ifndef MADRONA_GPU_MODE
+        madrona::phys::CVXSolve *cvxSolve;
+#endif
     };
 
     struct WorldInit {};
