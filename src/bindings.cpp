@@ -20,7 +20,9 @@ struct CVXSolveData {
 
 float *cvxSolveCall(void *vdata, 
                     float *a_data, uint32_t a_rows, uint32_t a_cols,
-                    float *v0, uint32_t v0_rows)
+                    float *v0, uint32_t v0_rows,
+                    float *mu,
+                    uint32_t fc_rows)
 {
     CVXSolveData *data = (CVXSolveData *)vdata;
 
@@ -48,23 +50,32 @@ float *cvxSolveCall(void *vdata,
         nb::device::cpu::value
     );
 
-    float *ret_data = new float[3];
-    ret_data[0] = ret_data[1] = ret_data[2] = 0.f;
-
-    Tensor ret_tensor(
-        ret_data,
-        { 3 },
+    Tensor mu_tensor(
+        mu,
+        { fc_rows / 3 },
         {},
         {},
         nb::dtype<float>(),
         nb::device::cpu::value
     );
 
-    data->call(a_tensor, v0_tensor, ret_tensor);
+    float *ret_data = new float[fc_rows];
+    for (int i = 0; i < fc_rows; ++i) {
+        ret_data[i] = 0.f;
+    }
 
-    printf("%f %f %f\n", ret_data[0], ret_data[1], ret_data[2]);
+    Tensor ret_tensor(
+        ret_data,
+        { fc_rows },
+        {},
+        {},
+        nb::dtype<float>(),
+        nb::device::cpu::value
+    );
 
-    return nullptr;
+    data->call(a_tensor, v0_tensor, mu_tensor, ret_tensor);
+
+    return ret_data;
 }
 
 namespace madPhysics {
