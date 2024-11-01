@@ -107,7 +107,7 @@ static imp::ImportedAssets loadRenderAssets(
     std::array<std::string, (size_t)SimObject::NumObjects> render_asset_paths;
 
     render_asset_paths[(size_t)SimObject::Stick] =
-        (std::filesystem::path(DATA_DIR) / "cylinder_render.obj").string();
+        (std::filesystem::path(DATA_DIR) / "cylinder_long_render.obj").string();
     render_asset_paths[(size_t)SimObject::Plane] =
         (std::filesystem::path(DATA_DIR) / "plane.obj").string();
 
@@ -162,7 +162,7 @@ static void loadPhysicsAssets(PhysicsLoader &loader)
 
     char import_err_buffer[4096];
     auto imported_hulls = importer.importFromDisk({
-        (std::filesystem::path(DATA_DIR) / "cylinder_collision.obj").string().c_str(),
+        (std::filesystem::path(DATA_DIR) / "cylinder_long.obj").string().c_str(),
     }, import_err_buffer, true);
 
     if (!imported_hulls.has_value()) {

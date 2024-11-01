@@ -22,6 +22,7 @@ float *cvxSolveCall(void *vdata,
                     float *a_data, uint32_t a_rows, uint32_t a_cols,
                     float *v0, uint32_t v0_rows,
                     float *mu,
+                    float *penetrations,
                     uint32_t fc_rows)
 {
     CVXSolveData *data = (CVXSolveData *)vdata;
@@ -59,6 +60,15 @@ float *cvxSolveCall(void *vdata,
         nb::device::cpu::value
     );
 
+    Tensor penetrations_tensor(
+        penetrations,
+        { fc_rows / 3 },
+        {},
+        {},
+        nb::dtype<float>(),
+        nb::device::cpu::value
+    );
+
     float *ret_data = new float[fc_rows];
     for (int i = 0; i < fc_rows; ++i) {
         ret_data[i] = 0.f;
@@ -73,7 +83,7 @@ float *cvxSolveCall(void *vdata,
         nb::device::cpu::value
     );
 
-    data->call(a_tensor, v0_tensor, mu_tensor, ret_tensor);
+    data->call(a_tensor, v0_tensor, mu_tensor, penetrations_tensor, ret_tensor);
 
     return ret_data;
 }

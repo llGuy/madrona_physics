@@ -132,9 +132,17 @@ Sim::Sim(Engine &ctx,
         stick = makeDynObject(ctx,
                               Vector3{ 0.f, 0.f, 40.01f },
                               Quat::angleAxis(0.5f, { 1.f, 1.f, 1.f }),
-                              Diag3x3{ 1.f, 1.f, 20.f },
+                              Diag3x3{ 1.f, 1.f, 1.f },
                               ResponseType::Dynamic,
                               SimObject::Stick);
+        for (int i = 0; i < 10; i++) {
+            makeDynObject(ctx,
+                                     Vector3{ 0.f, 0.f, 40.01f + 2.f * i },
+                                     Quat::angleAxis(0.5f, { 1.f, 1.f, 1.f }),
+                                     Diag3x3{ 1.f, 1.f, 1.f },
+                                     ResponseType::Dynamic,
+                                     SimObject::Stick);
+        }
     }
 
     { // Make the plane

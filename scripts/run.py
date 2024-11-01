@@ -86,7 +86,7 @@ def scipy_solve(A, v0, mu, result):
     print(res.x)
     result[:] = res.x
 
-def cvx_solve(A, v0, mu, result):
+def cvx_solve(A, v0, mu, penetrations, result):
     num_contact_pts = result.shape[0] / 3
     if num_contact_pts == 0:
         return
@@ -108,7 +108,7 @@ def cvx_solve(A, v0, mu, result):
         selection_mat @ f >= 0.0,
 
         # Positivity constraints on A @ f + v0
-        selection_mat @ (A_cpy @ f + v0) >= 0.0
+        selection_mat @ (A_cpy @ f + v0) >= penetrations
     ]
     #
     for contact in range(int(num_contact_pts)):
@@ -120,10 +120,10 @@ def cvx_solve(A, v0, mu, result):
     problem = cp.Problem(cp.Minimize(objective), constraints)
     problem.solve()
 
-    print(f.value)
     result[:] = f.value
 
 
-num_worlds = 1
-app = s.PhysicsApp(num_worlds)
-app.run(cvx_solve)
+if __name__ == "__main__":
+    num_worlds = 1
+    app = s.PhysicsApp(num_worlds)
+    app.run(cvx_solve)
