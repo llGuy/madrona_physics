@@ -12,6 +12,7 @@ def prepare_A(A):
     A_cpy = cvxpy.psd_wrap(A_cpy)
     return A_cpy
 
+
 def cvx_solve(A, v0, mu, result):
     num_contact_pts = result.shape[0] / 3
     if num_contact_pts == 0:
@@ -45,6 +46,7 @@ def cvx_solve(A, v0, mu, result):
     problem.solve()
 
     print(f.value)
+    result[:] = f.value
 
 num_worlds = 1
 app = s.PhysicsApp(num_worlds)
