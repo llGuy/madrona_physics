@@ -138,7 +138,7 @@ Sim::Sim(Engine &ctx,
         for(int i=0; i< 5; i++)
         {
             makeDynObject(ctx,
-                              Vector3{ 0.f, 0.f, 10.01f + (7.f * (float)i) },
+                              Vector3{ 0.f, 0.f, 17.01f + (7.f * (float)i) },
                               Quat::angleAxis(0.5f, { 0.f, 0.f, 1.f }),
                               Diag3x3{ 1.f, 1.f, 1.f },
                               ResponseType::Dynamic,
