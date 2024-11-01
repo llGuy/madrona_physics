@@ -121,7 +121,7 @@ Sim::Sim(Engine &ctx,
 
     PhysicsSystem::init(ctx, cfg.rigidBodyObjMgr,
                         consts::deltaT, 1,
-                        -9.8f * math::up, 15,
+                        -9.8f * math::up, 35,
                         physicsSolverSelector,
                         cfg.cvxSolve);
     RenderingSystem::init(ctx, cfg.renderBridge);
@@ -130,15 +130,15 @@ Sim::Sim(Engine &ctx,
 
     { // Make the stick
         stick = makeDynObject(ctx,
-                              Vector3{ 0.f, 0.f, 10.01f },
+                              Vector3{ 0.f, 0.f, 3.01f },
                               Quat::angleAxis(0.5f, { 0.f, 0.f, 1.f }),
                               Diag3x3{ 1.f, 1.f, 1.f },
                               ResponseType::Dynamic,
                               SimObject::Stick);
-        for(int i=0; i< 5; i++)
+        for(int i=0; i< 10; i++)
         {
             makeDynObject(ctx,
-                              Vector3{ 0.f, 0.f, 17.01f + (7.f * (float)i) },
+                              Vector3{ 0.f, 0.f, 7.01f + (10.f * (float)i) },
                               Quat::angleAxis(0.5f, { 0.f, 0.f, 1.f }),
                               Diag3x3{ 1.f, 1.f, 1.f },
                               ResponseType::Dynamic,
