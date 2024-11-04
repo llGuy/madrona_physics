@@ -106,7 +106,7 @@ struct AppWrapper {
         // Create the viewer viewer
         viz::Viewer viewer(mgr->getRenderManager(), window.get(), {
             .numWorlds = numWorlds,
-            .simTickRate = 10,
+            .simTickRate = 60,
             .cameraMoveSpeed = camera_move_speed * 7.f,
             .cameraPosition = { 41.899895f, -57.452969f, 33.152081f },
             .cameraRotation = { 0.944346f, -0.054453f, -0.018675f, 0.323878f },
