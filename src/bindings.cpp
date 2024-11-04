@@ -151,7 +151,7 @@ NB_MODULE(madrona_stick, m) {
             };
 
             madrona::phys::CVXSolve *solve_fn = new madrona::phys::CVXSolve {
-                nullptr, solve_data
+                cvxSolveCall, solve_data, 0
             };
 
             Manager *mgr = new Manager (Manager::Config {
@@ -177,8 +177,6 @@ NB_MODULE(madrona_stick, m) {
         .def("run", [](AppWrapper *self,
                        nb::callable cvx_solve) {
 #if 1
-            self->solve->fn = cvxSolveCall;
-
             self->solveData->init = true;
             self->solveData->call = cvx_solve;
 

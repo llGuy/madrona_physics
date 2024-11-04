@@ -239,13 +239,16 @@ struct Manager::Impl {
     Config cfg;
     Optional<RenderGPUState> renderGPUState;
     Optional<render::RenderManager> renderMgr;
+    CVXSolve *cvxSolve;
 
     inline Impl(const Manager::Config &mgr_cfg,
                 Optional<RenderGPUState> &&render_gpu_state,
-                Optional<render::RenderManager> &&render_mgr)
+                Optional<render::RenderManager> &&render_mgr,
+                CVXSolve *cvx_solve)
         : cfg(mgr_cfg),
           renderGPUState(std::move(render_gpu_state)),
-          renderMgr(std::move(render_mgr))
+          renderMgr(std::move(render_mgr)),
+          cvxSolve(cvx_solve)
     {}
 
     inline virtual ~Impl() {}
@@ -266,7 +269,8 @@ struct Manager::CUDAImpl final : Manager::Impl {
                    MWCudaExecutor &&gpu_exec,
                    MWCudaLaunchGraph &&step_graph)
         : Impl(mgr_cfg,
-               std::move(render_gpu_state), std::move(render_mgr)),
+               std::move(render_gpu_state), std::move(render_mgr),
+               nullptr),
           gpuExec(std::move(gpu_exec)),
           stepGraph(std::move(step_graph))
     {}
@@ -290,10 +294,12 @@ struct Manager::CPUImpl final : Manager::Impl {
     inline CPUImpl(const Manager::Config &mgr_cfg,
                    PhysicsLoader &&phys_loader,
                    Optional<RenderGPUState> &&render_gpu_state,
+                   CVXSolve *cvx_solve,
                    Optional<render::RenderManager> &&render_mgr,
                    TaskGraphT &&cpu_exec)
         : Impl(mgr_cfg,
-               std::move(render_gpu_state), std::move(render_mgr)),
+               std::move(render_gpu_state), std::move(render_mgr),
+               cvx_solve),
           cpuExec(std::move(cpu_exec)),
           physLoader(std::move(phys_loader))
     {}
@@ -302,7 +308,7 @@ struct Manager::CPUImpl final : Manager::Impl {
 
     inline virtual void run()
     {
-        cpuExec.run();
+        cpuExec.run(cvxSolve);
     }
 };
 
@@ -413,6 +419,7 @@ Manager::Impl * Manager::Impl::init(
             mgr_cfg,
             std::move(phys_loader),
             std::move(render_gpu_state),
+            mgr_cfg.cvxSolve,
             std::move(render_mgr),
             std::move(cpu_exec)
         };
