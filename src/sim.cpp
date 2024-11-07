@@ -86,7 +86,8 @@ static Entity makeDynObject(Engine &ctx,
                             Quat rot,
                             Diag3x3 scale,
                             ResponseType type,
-                            SimObject obj)
+                            SimObject obj,
+                            uint32_t num_dofs)
 {
     Entity e = ctx.makeRenderableEntity<DynamicObject>();
     ctx.get<Position>(e) = pos;
@@ -97,6 +98,7 @@ static Entity makeDynObject(Engine &ctx,
 
     ctx.get<phys::broadphase::LeafID>(e) =
         PhysicsSystem::registerEntity(ctx, e, e_obj_id,
+                                      num_dofs,
                                       physicsSolverSelector);
 
     ctx.get<Velocity>(e) = {
@@ -126,8 +128,33 @@ Sim::Sim(Engine &ctx,
                         cfg.cvxSolve);
     RenderingSystem::init(ctx, cfg.renderBridge);
 
+    { // Make the articulated sticks
+        stickParent = makeDynObject(ctx,
+                              Vector3{ 0.f, 0.f, 40.01f },
+                              Quat::angleAxis(0.5f, { 1.f, 1.f, 1.f }),
+                              Diag3x3{ 1.f, 1.f, 1.f },
+                              ResponseType::Dynamic,
+                              SimObject::Stick,
+                              6);
 
+        stickChild = makeDynObject(ctx,
+                              Vector3{ 0.f, 0.f, 40.01f },
+                              Quat::angleAxis(0.5f, { 1.f, 1.f, 1.f }),
+                              Diag3x3{ 1.f, 1.f, 1.f },
+                              ResponseType::Dynamic,
+                              SimObject::Stick,
+                              1);
 
+        phys::PhysicsSystem::setEntityParentHinge(ctx,
+                                   stickParent,
+                                   stickChild,
+                                   Vector3 { 0.f, 0.f, 15.f },
+                                   Vector3 { 0.f, 0.f, 15.f },
+                                   Vector3 { 1.f, 0.f, 0.f },
+                                   physicsSolverSelector);
+    }
+
+#if 0
     { // Make the stick
         stick = makeDynObject(ctx,
                               Vector3{ 0.f, 0.f, 40.01f },
@@ -144,6 +171,7 @@ Sim::Sim(Engine &ctx,
                                      SimObject::Stick);
         }
     }
+#endif
 
     { // Make the plane
         plane = makeDynObject(ctx,
@@ -151,7 +179,8 @@ Sim::Sim(Engine &ctx,
                               Quat::angleAxis(0.5f, { 0.f, 0.f, 1.f }),
                               Diag3x3{ 0.01f, 0.01f, 0.01f },
                               ResponseType::Static,
-                              SimObject::Plane);
+                              SimObject::Plane,
+                              0);
     }
 }
 
