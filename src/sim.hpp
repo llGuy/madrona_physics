@@ -85,7 +85,8 @@ struct Sim : public madrona::WorldBase {
     madrona::RandKey initRandKey;
     madrona::RNG rng;
 
-    Entity stickParent;
+    Entity stickBodyGrp;
+    Entity stickRoot;
     Entity stickChild;
 
     Entity plane;

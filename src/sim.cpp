@@ -4,6 +4,8 @@
 #include "sim.hpp"
 #include "consts.hpp"
 
+#include <madrona/cvphysics.hpp>
+
 #ifdef MADRONA_GPU_MODE
 #include <madrona/mw_gpu/host_print.hpp>
 #define LOG(...) mwGPU::HostPrint::log(__VA_ARGS__)
@@ -129,7 +131,14 @@ Sim::Sim(Engine &ctx,
     RenderingSystem::init(ctx, cfg.renderBridge);
 
     { // Make the articulated sticks
-        stickParent = makeDynObject(ctx,
+        stickBodyGrp = cv::makeCVBodyGroup(ctx);
+
+
+
+        // This instruction and the following just create the bodies.
+        // After the bodies have been created, we need to set the
+        // relationship between the two.
+        stickRoot = makeDynObject(ctx,
                               Vector3{ 0.f, 0.f, 40.01f },
                               Quat::angleAxis(0.5f, { 1.f, 1.f, 1.f }),
                               Diag3x3{ 1.f, 1.f, 1.f },
@@ -145,33 +154,20 @@ Sim::Sim(Engine &ctx,
                               SimObject::Stick,
                               1);
 
-        phys::PhysicsSystem::setEntityParentHinge(ctx,
-                                   stickParent,
-                                   stickChild,
-                                   Vector3 { 0.f, 0.f, 15.f },
-                                   Vector3 { 0.f, 0.f, 15.f },
-                                   Vector3 { 1.f, 0.f, 0.f },
-                                   physicsSolverSelector);
-    }
 
-#if 0
-    { // Make the stick
-        stick = makeDynObject(ctx,
-                              Vector3{ 0.f, 0.f, 40.01f },
-                              Quat::angleAxis(0.5f, { 1.f, 1.f, 1.f }),
-                              Diag3x3{ 1.f, 1.f, 1.f },
-                              ResponseType::Dynamic,
-                              SimObject::Stick);
-        for (int i = 0; i < 10; i++) {
-            makeDynObject(ctx,
-                                     Vector3{ 0.f, 0.f, 40.01f + 2.f * i },
-                                     Quat::angleAxis(0.5f, { 1.f, 1.f, 1.f }),
-                                     Diag3x3{ 1.f, 1.f, 1.f },
-                                     ResponseType::Dynamic,
-                                     SimObject::Stick);
-        }
+
+        // Configure the root of the armature
+        cv::setCVGroupRoot(ctx, stickBodyGrp, stickRoot);
+
+        // Configure the parent/child relationship
+        cv::setCVEntityParentHinge(ctx,
+                                 stickBodyGrp,
+                                 stickRoot,
+                                 stickChild,
+                                 Vector3 { 0.f, 0.f, 15.f },
+                                 Vector3 { 0.f, 0.f, 15.f },
+                                 Vector3 { 1.f, 0.f, 0.f });
     }
-#endif
 
     { // Make the plane
         plane = makeDynObject(ctx,
