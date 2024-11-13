@@ -228,8 +228,11 @@ def cvx_solve(A, v0, mu, penetrations, result):
 
     return f.value
 
+def mass_solve(M, tau, result):
+    result[:] = np.linalg.solve(M, tau)
+
 
 if __name__ == "__main__":
     num_worlds = 1
     app = s.PhysicsApp(num_worlds)
-    app.run(clarabel_solve)
+    app.run(mass_solve)

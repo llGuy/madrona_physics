@@ -18,12 +18,10 @@ struct CVXSolveData {
     nb::callable call;
 };
 
-float *cvxSolveCall(void *vdata, 
-                    float *a_data, uint32_t a_rows, uint32_t a_cols,
-                    float *v0, uint32_t v0_rows,
-                    float *mu,
-                    float *penetrations,
-                    uint32_t fc_rows)
+float *cvxSolveCall(void *vdata,
+                    uint32_t total_num_dofs,
+                    float *mass,
+                    float *tau)
 {
     CVXSolveData *data = (CVXSolveData *)vdata;
 
@@ -33,57 +31,39 @@ float *cvxSolveCall(void *vdata,
 
     using Tensor = nb::ndarray<float, nb::numpy, nb::shape<>>;
 
-    Tensor a_tensor(
-        a_data,
-        { a_rows, a_cols },
+    Tensor m_tensor(
+        mass,
+        { total_num_dofs, total_num_dofs },
         {},
         {},
         nb::dtype<float>(),
         nb::device::cpu::value
     );
 
-    Tensor v0_tensor(
-        v0,
-        { v0_rows },
+    Tensor tau_tensor(
+        tau,
+        { total_num_dofs },
         {},
         {},
         nb::dtype<float>(),
         nb::device::cpu::value
     );
 
-    Tensor mu_tensor(
-        mu,
-        { fc_rows / 3 },
-        {},
-        {},
-        nb::dtype<float>(),
-        nb::device::cpu::value
-    );
-
-    Tensor penetrations_tensor(
-        penetrations,
-        { fc_rows / 3 },
-        {},
-        {},
-        nb::dtype<float>(),
-        nb::device::cpu::value
-    );
-
-    float *ret_data = new float[fc_rows];
-    for (int i = 0; i < fc_rows; ++i) {
+    float *ret_data = new float[total_num_dofs];
+    for (int i = 0; i < total_num_dofs; ++i) {
         ret_data[i] = 0.f;
     }
 
     Tensor ret_tensor(
         ret_data,
-        { fc_rows },
+        { total_num_dofs },
         {},
         {},
         nb::dtype<float>(),
         nb::device::cpu::value
     );
 
-    data->call(a_tensor, v0_tensor, mu_tensor, penetrations_tensor, ret_tensor);
+    data->call(m_tensor, tau_tensor, ret_tensor);
 
     return ret_data;
 }
