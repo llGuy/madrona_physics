@@ -5,6 +5,9 @@ import cvxpy as cp
 import scipy.sparse as sp
 import madrona_stick as s
 
+np.set_printoptions(threshold=np.inf)
+np.set_printoptions(linewidth=np.inf)
+
 def create_clarabel_matrices(n_contact_pts, mu, P, c, penetration):
     n_contact_pts = int(n_contact_pts)
     n_constraints = n_contact_pts + 3 * n_contact_pts + n_contact_pts
@@ -111,7 +114,15 @@ def cvx_solve(A, v0, mu, penetrations, result):
     return f.value
 
 def mass_solve(M, tau, result):
-    result[:] = np.linalg.solve(M, tau)
+    # print(M)
+    import scipy
+    Msc = scipy.sparse.csc_matrix(M)
+    result[:] = scipy.sparse.linalg.spsolve(Msc, -tau)
+    # temp = result[3]
+    # result[3] = result[4]
+    # result[4] = temp
+
+    print(result)
 
 
 if __name__ == "__main__":

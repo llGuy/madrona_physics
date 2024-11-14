@@ -139,8 +139,8 @@ Sim::Sim(Engine &ctx,
         // After the bodies have been created, we need to set the
         // relationship between the two.
         stickRoot = makeDynObject(ctx,
-                              Vector3{ 0.f, 0.f, 40.01f },
-                              Quat::angleAxis(0.5f, { 1.f, 1.f, 1.f }),
+                              Vector3{ 0.f, 0.f, 40.0f },
+                              Quat::angleAxis(1.2f, { 1.f, 1.f, 1.f }),
                               Diag3x3{ 1.f, 1.f, 1.f },
                               ResponseType::Dynamic,
                               SimObject::Stick,
