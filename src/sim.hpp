@@ -7,8 +7,6 @@
 #include <madrona/cvphysics.hpp>
 #include <madrona/render/ecs.hpp>
 
-#include "consts.hpp"
-
 namespace madPhysics {
 
 class Engine;
