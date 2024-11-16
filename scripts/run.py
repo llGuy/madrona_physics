@@ -48,10 +48,13 @@ def create_clarabel_matrices(n_contact_pts, mu, P, c, penetration):
 
     return A, b, cones
 
-def clarabel_solve(A, v0, mu, penetrations, result):
-    num_contact_pts = result.shape[0] / 3
+def clarabel_solve(A, v0, num_contact_pts):
     if num_contact_pts == 0:
         return
+
+    # TODO: fix me
+    penetrations = np.zeros(int(num_contact_pts))
+    mu = 0.5 * np.ones(int(num_contact_pts))
 
     # Clarabel solves:
     # min x^T P x + c^T x ( for us, P = A, c = v0 )
@@ -70,9 +73,9 @@ def clarabel_solve(A, v0, mu, penetrations, result):
     solver_results = solver.solve()
 
     solver_results, status = solver_results, solver_results.status
-    result[:] = solver_results.x
+    f = solver_results.x
 
-    return result
+    return np.array(f)
 
 def cvx_solve(A, v0, mu, penetrations, result):
     num_contact_pts = result.shape[0] / 3
@@ -113,16 +116,24 @@ def cvx_solve(A, v0, mu, penetrations, result):
 
     return f.value
 
-def mass_solve(M, tau, result):
-    # print(M)
-    import scipy
-    Msc = scipy.sparse.csc_matrix(M)
-    result[:] = scipy.sparse.linalg.spsolve(Msc, -tau)
+def mass_solve(M, bias, v, J, h, result):
+    num_contacts_pts = int(J.shape[0] / 3)
+
+    M_inv = np.linalg.inv(M)
+    A = J @ M_inv @ J.T
+    v0 = J @ (v + h * M_inv @ bias)
+
+    if num_contacts_pts == 0:
+        result[:] = M_inv @ -bias
+    else:
+        f = clarabel_solve(A, v0, num_contacts_pts)
+        contact_imp = (J.T @ f) / h
+        result[:] = M_inv @ (-bias + contact_imp)
     # temp = result[3]
     # result[3] = result[4]
     # result[4] = temp
 
-    print(result)
+    # print(result)
 
 
 if __name__ == "__main__":

@@ -20,8 +20,12 @@ struct CVXSolveData {
 
 float *cvxSolveCall(void *vdata,
                     uint32_t total_num_dofs,
+                    uint32_t num_contact_pts,
+                    float h,
                     float *mass,
-                    float *tau)
+                    float *bias,
+                    float *vel,
+                    float *J_c)
 {
     CVXSolveData *data = (CVXSolveData *)vdata;
 
@@ -40,9 +44,27 @@ float *cvxSolveCall(void *vdata,
         nb::device::cpu::value
     );
 
-    Tensor tau_tensor(
-        tau,
+    Tensor bias_tensor(
+        bias,
         { total_num_dofs },
+        {},
+        {},
+        nb::dtype<float>(),
+        nb::device::cpu::value
+    );
+
+    Tensor vel_tensor(
+        vel,
+        { total_num_dofs },
+        {},
+        {},
+        nb::dtype<float>(),
+        nb::device::cpu::value
+    );
+
+    Tensor J_tensor(
+        J_c,
+        { 3 * num_contact_pts, total_num_dofs },
         {},
         {},
         nb::dtype<float>(),
@@ -63,7 +85,7 @@ float *cvxSolveCall(void *vdata,
         nb::device::cpu::value
     );
 
-    data->call(m_tensor, tau_tensor, ret_tensor);
+    data->call(m_tensor, bias_tensor, vel_tensor, J_tensor, h, ret_tensor);
 
     return ret_data;
 }
@@ -86,7 +108,7 @@ struct AppWrapper {
         // Create the viewer viewer
         viz::Viewer viewer(mgr->getRenderManager(), window.get(), {
             .numWorlds = numWorlds,
-            .simTickRate = 60,
+            .simTickRate = 10,
             .cameraMoveSpeed = camera_move_speed * 7.f,
             .cameraPosition = { 41.899895f, -57.452969f, 33.152081f },
             .cameraRotation = { 0.944346f, -0.054453f, -0.018675f, 0.323878f },
