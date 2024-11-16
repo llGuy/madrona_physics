@@ -25,7 +25,9 @@ float *cvxSolveCall(void *vdata,
                     float *mass,
                     float *bias,
                     float *vel,
-                    float *J_c)
+                    float *J_c,
+                    float *mu,
+                    float *penetrations)
 {
     CVXSolveData *data = (CVXSolveData *)vdata;
 
@@ -71,6 +73,24 @@ float *cvxSolveCall(void *vdata,
         nb::device::cpu::value
     );
 
+    Tensor mu_tensor(
+        mu,
+        { num_contact_pts },
+        {},
+        {},
+        nb::dtype<float>(),
+        nb::device::cpu::value
+    );
+
+    Tensor pen_tensor(
+        penetrations,
+        { num_contact_pts },
+        {},
+        {},
+        nb::dtype<float>(),
+        nb::device::cpu::value
+    );
+
     float *ret_data = new float[total_num_dofs];
     for (int i = 0; i < total_num_dofs; ++i) {
         ret_data[i] = 0.f;
@@ -85,7 +105,8 @@ float *cvxSolveCall(void *vdata,
         nb::device::cpu::value
     );
 
-    data->call(m_tensor, bias_tensor, vel_tensor, J_tensor, h, ret_tensor);
+    data->call(m_tensor, bias_tensor, vel_tensor, J_tensor,
+        mu_tensor, pen_tensor, h, ret_tensor);
 
     return ret_data;
 }
