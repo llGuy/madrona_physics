@@ -113,18 +113,20 @@ def mass_solve(M, bias, v, J, mu, penetrations, h, result):
     import scipy
     num_contacts_pts = int(J.shape[0] / 3)
 
+    C = -bias
+
     M_inv = np.linalg.inv(M)
     M_sc = scipy.sparse.csc_matrix(M)
     A = J @ M_inv @ J.T
-    v0 = -J @ (v + h * M_inv @ bias)
+    v0 = J @ (v + h * M_inv @ C)
 
     if num_contacts_pts == 0:
-        gen_forces = -bias
-        result[:] = M_inv @ -bias
+        gen_forces = C
+        result[:] = M_inv @ C
     else:
         f = clarabel_solve(A, v0, mu, penetrations, num_contacts_pts)
-        contact_imp = -(J.T @ f) / h
-        gen_forces = -bias + contact_imp
+        contact_imp = (J.T @ f) / h
+        gen_forces = C + contact_imp
     res = scipy.sparse.linalg.spsolve(M_sc, gen_forces)
     result[:] = res
 
