@@ -140,19 +140,19 @@ Sim::Sim(Engine &ctx,
         // relationship between the two.
         stickRoot = makeDynObject(ctx,
                               Vector3{ 0.f, 0.f, 60.0f },
-                              Quat::angleAxis(0.f, { 1.f, 1.f, 1.f }),
+                              Quat::angleAxis(1.f, { 1.f, 1.f, 1.f }),
                               Diag3x3{ 1.f, 1.f, 1.f },
                               ResponseType::Dynamic,
                               SimObject::Stick,
                               6);
 
-        // stickChild = makeDynObject(ctx,
-        //                       Vector3{ 0.f, 0.f, 40.01f },
-        //                       Quat::angleAxis(0.5f, { 1.f, 1.f, 1.f }),
-        //                       Diag3x3{ 1.f, 1.f, 1.f },
-        //                       ResponseType::Dynamic,
-        //                       SimObject::Stick,
-        //                       1);
+        stickChild = makeDynObject(ctx,
+                              Vector3{ 0.f, 0.f, 40.01f },
+                              Quat::angleAxis(0.5f, { 1.f, 1.f, 1.f }),
+                              Diag3x3{ 1.f, 1.f, 1.f },
+                              ResponseType::Dynamic,
+                              SimObject::Stick,
+                              1);
 
 
 
@@ -160,13 +160,13 @@ Sim::Sim(Engine &ctx,
         cv::setCVGroupRoot(ctx, stickBodyGrp, stickRoot);
 
         // Configure the parent/child relationship
-        // cv::setCVEntityParentHinge(ctx,
-        //                          stickBodyGrp,
-        //                          stickRoot,
-        //                          stickChild,
-        //                          Vector3 { 0.f, 0.f, 16.f },
-        //                          Vector3 { 0.f, 0.f, 16.f },
-        //                          Vector3 { 1.f, 0.f, 0.f });
+        cv::setCVEntityParentHinge(ctx,
+                                 stickBodyGrp,
+                                 stickRoot,
+                                 stickChild,
+                                 Vector3 { 0.f, 0.f, 16.f },
+                                 Vector3 { 0.f, 0.f, 16.f },
+                                 Vector3 { 1.f, 0.f, 0.f });
     }
 
     { // Make the plane
