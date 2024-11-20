@@ -3,7 +3,7 @@ import scipy
 import scipy.sparse as sp
 from scipy.optimize import line_search
 
-from scripts.A_matrix import AMatrix, HMatrix
+from scripts.matrix_wrappers import AMatrix, HMatrix, MMatrix
 
 
 def inner_newton_cg(z0, g, r, d, H, tol, cg_max_iter):
@@ -77,11 +77,13 @@ def cone_solve(M, bias, v, J, mu, penetrations, h, result):
     q is an imposed penalty function to prevent penetration
     """
     num_contacts_pts = int(J.shape[0] / 3)
-    C = -bias
-    A = AMatrix(M=M, J=J)
+    # Matrix wrappers
+    M_m = MMatrix(M=M)
+    A = AMatrix(M=M_m, J=J)
 
-    M_sc, J_sc = sp.csc_matrix(M), sp.csc_matrix(J)
-    v0 = J_sc @ (v + h * sp.linalg.spsolve(M_sc, C))
+    C = -bias
+    J_sc = sp.csc_matrix(J)
+    v0 = J_sc @ (v + h * M_m.solve(C))
 
     def q(v_c):
         # penalize where normal component of v_C is negative
@@ -129,6 +131,6 @@ def cone_solve(M, bias, v, J, mu, penetrations, h, result):
         contact_imp = (J_sc.T @ f) / h
         gen_forces = C + contact_imp
 
-    res = scipy.sparse.linalg.spsolve(M_sc, gen_forces)
+    res = M_m.solve(gen_forces)
     result[:] = res
     return
