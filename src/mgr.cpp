@@ -108,6 +108,10 @@ static imp::ImportedAssets loadRenderAssets(
 
     render_asset_paths[(size_t)SimObject::Stick] =
         (std::filesystem::path(DATA_DIR) / "cylinder_long_render.obj").string();
+    render_asset_paths[(size_t)SimObject::Sphere] =
+        (std::filesystem::path(DATA_DIR) / "sphere_render.obj").string();
+    render_asset_paths[(size_t)SimObject::Capsule] =
+        (std::filesystem::path(DATA_DIR) / "capsule_render.obj").string();
     render_asset_paths[(size_t)SimObject::Plane] =
         (std::filesystem::path(DATA_DIR) / "plane.obj").string();
 
@@ -133,8 +137,10 @@ static imp::ImportedAssets loadRenderAssets(
     }
 
     // Override materials
-    render_assets->objects[0].meshes[0].materialIDX = 0;
-    render_assets->objects[1].meshes[0].materialIDX = 1;
+    render_assets->objects[(CountT)SimObject::Stick].meshes[0].materialIDX = 0;
+    render_assets->objects[(CountT)SimObject::Sphere].meshes[0].materialIDX = 0;
+    render_assets->objects[(CountT)SimObject::Capsule].meshes[0].materialIDX = 0;
+    render_assets->objects[(CountT)SimObject::Plane].meshes[0].materialIDX = 1;
 
     if (render_mgr.has_value()) {
         render_mgr->loadObjects(render_assets->objects,
@@ -154,16 +160,24 @@ static imp::ImportedAssets loadRenderAssets(
 
 static void loadPhysicsAssets(PhysicsLoader &loader)
 {
-    SourceCollisionPrimitive plane_prim {
-        .type = CollisionPrimitive::Type::Plane,
-    };
-
     imp::AssetImporter importer;
 
+    std::array<std::string, (size_t)SimObject::NumObjects - 1> asset_paths;
+    asset_paths[(size_t)SimObject::Stick] =
+        (std::filesystem::path(DATA_DIR) / "cylinder_long.obj").string();
+    asset_paths[(size_t)SimObject::Sphere] =
+        (std::filesystem::path(DATA_DIR) / "sphere.obj").string();
+    asset_paths[(size_t)SimObject::Capsule] =
+        (std::filesystem::path(DATA_DIR) / "capsule.obj").string();
+
+    std::array<const char *, (size_t)SimObject::NumObjects - 1> asset_cstrs;
+    for (size_t i = 0; i < asset_paths.size(); i++) {
+        asset_cstrs[i] = asset_paths[i].c_str();
+    }
+
     char import_err_buffer[4096];
-    auto imported_hulls = importer.importFromDisk({
-        (std::filesystem::path(DATA_DIR) / "cylinder_long.obj").string().c_str(),
-    }, import_err_buffer, true);
+    auto imported_hulls = importer.importFromDisk(
+        asset_cstrs, import_err_buffer, true);
 
     if (!imported_hulls.has_value()) {
         FATAL("%s", import_err_buffer);
@@ -173,21 +187,12 @@ static void loadPhysicsAssets(PhysicsLoader &loader)
         imported_hulls->objects.size());
 
     DynArray<DynArray<SourceCollisionPrimitive>> prim_arrays(0);
-    HeapArray<SourceCollisionObject> src_objs(imported_hulls->objects.size() + 1);
+    HeapArray<SourceCollisionObject> src_objs(
+        (CountT)SimObject::NumObjects);
 
-    // Plane (1)
-    src_objs[1] = {
-        .prims = Span<const SourceCollisionPrimitive>(&plane_prim, 1),
-        .invMass = 0.f,
-        .friction = {
-            .muS = 2.f,
-            .muD = 2.f,
-        },
-    };
-
-    auto setupHull = [&](CountT obj_idx, float inv_mass,
+    auto setupHull = [&](SimObject obj_id, float inv_mass,
                          RigidBodyFrictionData friction) {
-        auto meshes = imported_hulls->objects[obj_idx].meshes;
+        auto meshes = imported_hulls->objects[(CountT) obj_id].meshes;
         DynArray<SourceCollisionPrimitive> prims(meshes.size());
 
         for (const imp::SourceMesh &mesh : meshes) {
@@ -202,19 +207,39 @@ static void loadPhysicsAssets(PhysicsLoader &loader)
 
         prim_arrays.emplace_back(std::move(prims));
 
-        return SourceCollisionObject {
+        src_objs[(CountT)obj_id] = SourceCollisionObject {
             .prims = Span<const SourceCollisionPrimitive>(prim_arrays.back()),
             .invMass = inv_mass,
             .friction = friction,
         };
     };
 
-    { // Cylinder (0)
-        src_objs[0] = setupHull(0, 0.5f, {
-            .muS = 0.5f,
+    setupHull(SimObject::Stick, 0.5f, {
+        .muS = 0.5f,
+        .muD = 2.f,
+    });
+    setupHull(SimObject::Sphere, 0.5f, {
+        .muS = 0.5f,
+        .muD = 2.f,
+    });
+    setupHull(SimObject::Capsule, 0.5f, {
+        .muS = 0.5f,
+        .muD = 2.f,
+    });
+
+    SourceCollisionPrimitive plane_prim {
+        .type = CollisionPrimitive::Type::Plane,
+    };
+
+    src_objs[(CountT)SimObject::Plane] = {
+        .prims = Span<const SourceCollisionPrimitive>(&plane_prim, 1),
+        .invMass = 0.f,
+        .friction = {
+            .muS = 2.f,
             .muD = 2.f,
-        });
-    }
+        },
+    };
+
 
     StackAlloc tmp_alloc;
     RigidBodyAssets rigid_body_assets;
