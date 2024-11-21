@@ -41,7 +41,7 @@ class HMatrix:
         self.Hq = csc_matrix(Hq)
 
     def matvec(self, x):
-        return (self.A @ x) + self.Hq @ x
+        return (self.A @ x) + (self.Hq @ x)
 
     def dot(self, x):
         return self.matvec(x)

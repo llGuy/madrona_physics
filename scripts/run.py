@@ -6,7 +6,7 @@ import scipy
 import scipy.sparse as sp
 import madrona_stick as s
 
-from scripts.newton import cone_solve
+from newton import cone_solve
 
 np.set_printoptions(threshold=np.inf)
 np.set_printoptions(linewidth=np.inf)

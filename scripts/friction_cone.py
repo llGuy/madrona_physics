@@ -17,11 +17,25 @@ class FrictionCones:
             min_t = min(min_t, t)
         return min_t
 
+    def get_min_ts(self, x, d):
+        min_ts = np.zeros(x.shape[0] // 3)
+        for i, cone in enumerate(self.cones):
+            t = cone.line_intersect(x[3 * i: 3 * i + 3], d[3 * i: 3 * i + 3])
+            min_ts[i] = t
+        return min_ts
+
     def in_cone(self, x):
         for i, cone in enumerate(self.cones):
             if not cone.in_cone(x[3 * i: 3 * i + 3]):
                 return False
         return True
+
+    def in_cones(self, x):
+        ind = []
+        for i, cone in enumerate(self.cones):
+            if not cone.in_cone(x[3 * i: 3 * i + 3]):
+                ind.append(i)
+        return ind
 
 
 class Cone:

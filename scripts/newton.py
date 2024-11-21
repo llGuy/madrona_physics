@@ -1,10 +1,9 @@
 import numpy as np
-import scipy
 import scipy.sparse as sp
 from scipy.optimize import line_search
 
-from scripts.friction_cone import FrictionCones
-from scripts.matrix_wrappers import AMatrix, HMatrix, MMatrix
+from friction_cone import FrictionCones
+from matrix_wrappers import AMatrix, HMatrix, MMatrix
 
 
 def inner_newton_cg(z0, g, r, d, H, tol, cg_max_iter):
@@ -71,7 +70,7 @@ def newton(fun, df, hess, x0, tol, cones):
         if cones.in_cone(proposed_x):
             update = proposed_update
             x = proposed_x
-        else:  # we must have left the cone at some point
+        else:  # we must have left the cone at some point, find when
             min_t = cones.get_min_t(x, p)
             update = min_t * p
             x += update
@@ -85,7 +84,7 @@ def cone_solve(M, bias, v, J, mu, penetrations, h, result):
     """
     Solves the objective function: (note that Af + v0 is v_c)
         min (1/2) * f^T A f + f^T v0 + q(Af + v0)
-        subject to f \in K
+        subject to f in K
     q is an imposed penalty function to prevent penetration
     """
     num_contacts_pts = int(J.shape[0] / 3)
@@ -143,7 +142,7 @@ def cone_solve(M, bias, v, J, mu, penetrations, h, result):
         f0 = np.zeros(num_contacts_pts * 3)
         for i in range(num_contacts_pts):
             f0[i * 3] = 1.0
-        f = newton(obj, d_obj, h_obj, f0, 1e-3, cones)
+        f = newton(obj, d_obj, h_obj, f0, 1e-8, cones)
         contact_imp = (J_sc.T @ f) / h
         gen_forces = C + contact_imp
 
