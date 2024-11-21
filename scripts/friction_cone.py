@@ -3,6 +3,7 @@ friction cone related stuff
 """
 import numpy as np
 
+
 class FrictionCones:
     def __init__(self, mus):
         self.cones = []
@@ -23,7 +24,6 @@ class FrictionCones:
         return True
 
 
-
 class Cone:
     def __init__(self, mu):
         self.mu = mu
@@ -32,23 +32,24 @@ class Cone:
         """
         returns the intersection time t of line p + td with the cone
         """
-        a = self.mu ** 2 * d[0] ** 2 - d[1] ** 2 - d[2] ** 2
-        b = 2 * self.mu ** 2 * p[0] * d[0] - 2 * p[1] * d[1] - 2 * p[2] * d[2]
-        c = self.mu ** 2 * p[0] ** 2 - p[1] ** 2 - p[2] ** 2
+        mu = self.mu
+        a = (d[0] ** 2 * mu ** 2) - (d[1] ** 2 + d[2] ** 2)
+        b = 2 * ((p[0] * d[0] * mu ** 2) - (p[1] * d[1] + p[2] * d[2]))
+        c = (p[0] ** 2 * mu ** 2) - (p[1] ** 2 + p[2] ** 2)
         disc = b ** 2 - 4 * a * c
         if disc < 0:
             assert False
-        t1 = (-b + np.sqrt(disc)) / (2 * a)
-        t2 = (-b - np.sqrt(disc)) / (2 * a)
-        print(t1, t2)
-        assert t1 >= 0 or t2 >= 0
+        sqrt_disc = np.sqrt(disc)
+        t1 = (-b - sqrt_disc) / (2 * a)
+        t2 = (-b + sqrt_disc) / (2 * a)
+        # This direction won't take us out of the cone
+        if t1 < 0 and t2 < 0:
+            return np.inf
 
         # first positive t
-        if t2 >= 0:
-            return t2
-        return t1
-
+        if t1 >= 0:
+            return t1
+        return t2
 
     def in_cone(self, x):
         return self.mu * x[0] >= np.linalg.norm(x[1:])
-

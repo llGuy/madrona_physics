@@ -62,6 +62,7 @@ def newton(fun, df, hess, x0, tol, cones):
         # Line search
         alpha, _, _, f_old, f_old_old, _ = line_search(fun, df, x, p, g, f_old, f_old_old)
         if alpha is None:
+            print("Line search failed")
             return x
 
         # Take the step if it keeps us in the cone
@@ -70,10 +71,8 @@ def newton(fun, df, hess, x0, tol, cones):
         if cones.in_cone(proposed_x):
             update = proposed_update
             x = proposed_x
-        else:  # Project
-            # Get where time of friction cone intersection
+        else:  # we must have left the cone at some point
             min_t = cones.get_min_t(x, p)
-            print(min_t)
             update = min_t * p
             x += update
 
@@ -144,7 +143,6 @@ def cone_solve(M, bias, v, J, mu, penetrations, h, result):
         f0 = np.zeros(num_contacts_pts * 3)
         for i in range(num_contacts_pts):
             f0[i * 3] = 1.0
-        print(f0, cones.in_cone(f0))
         f = newton(obj, d_obj, h_obj, f0, 1e-3, cones)
         contact_imp = (J_sc.T @ f) / h
         gen_forces = C + contact_imp
