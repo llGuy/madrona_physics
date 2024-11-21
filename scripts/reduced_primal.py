@@ -5,19 +5,24 @@ from matrix_wrappers import MMatrix
 
 
 def get_aref(v, J, r, h):
-    timeconst, dampratio = 2 * h, 1
-    dmin, dmax, width, mid, power = 0.9, 0.95, 0.001, 0.5, 2
+    """
+    Computes the ``reference acceleration'' described by MuJoCo.
+    The reference acceleration is based on Baumgarte stabilization
+        (critically damped spring force for constraints)
+    """
+    time_const, damp_ratio = 2 * h, 1
+    d_min, d_max, width, mid, power = 0.9, 0.95, 0.001, 0.5, 2
 
     imp_x = np.abs(r) / width
     imp_a = (1.0 / np.power(mid, power - 1)) * np.power(imp_x, power)
     imp_b = 1 - (1.0 / np.power(1 - mid, power - 1)) * np.power(1 - imp_x, power)
     imp_y = np.where(imp_x < mid, imp_a, imp_b)
-    imp = dmin + imp_y * (dmax - dmin)
-    imp = np.clip(imp, dmin, dmax)
-    imp = np.where(imp_x > 1.0, dmax, imp)
+    imp = d_min + imp_y * (d_max - d_min)
+    imp = np.clip(imp, d_min, d_max)
+    imp = np.where(imp_x > 1.0, d_max, imp)
 
-    k = 1 / (dmax * dmax * timeconst * timeconst * dampratio * dampratio)
-    b = 2 / (dmax * timeconst)
+    k = 1 / (d_max * d_max * time_const * time_const * damp_ratio * damp_ratio)
+    b = 2 / (d_max * time_const)
 
     aref = -b * (J @ v) - k * imp * r
     return aref
@@ -60,13 +65,15 @@ def reduced_primal(M, bias, v, J, mu, penetrations, h, result):
         raise NotImplementedError
 
     def obj(x):
-        return (x - a_free).T @ M @ (x - a_free) + s(J @ x - a_ref)
+        x_a_free = x - a_free
+        return a_free.T @ (M @ x_a_free) + s(J @ x - a_ref)
 
-    def d_obj(f):
-        return 2 * M @ (f - a_free) + J.T @ ds(J @ f - a_ref)
+    def d_obj(x):
+        x_a_free = x - a_free
+        return 2 * (M @ x_a_free) + J.T @ ds(J @ x - a_ref)
 
-    def h_obj(f):
-        return 2 * M + J.T @ hq(J @ f - a_ref) @ J
+    def h_obj(x):
+        return 2 * M + J.T @ hq(J @ x - a_ref) @ J
 
     if num_contacts_pts == 0:
         result[:] = a_free
