@@ -1,3 +1,4 @@
+import numpy as np
 from scipy.sparse import csc_matrix
 from scipy.sparse.linalg import spsolve
 
@@ -18,10 +19,13 @@ class MMatrix:
     def solve(self, x):
         return spsolve(self.M, x)
 
+    def materialize_inverse(self):
+        return np.linalg.inv(self.M.toarray())
+
 
 class AMatrix:
     # A = J @ M^{-1} @ J.T, but rather than storing A, we store M and J
-    def __init__(self, M, J):
+    def __init__(self, M: MMatrix, J):
         self.M = M
         self.J = csc_matrix(J)
 
@@ -31,20 +35,26 @@ class AMatrix:
     def dot(self, x):
         return self.matvec(x)
 
+    def materialize(self):
+        return self.J @ self.M.materialize_inverse() @ self.J.T
+
     def __matmul__(self, x):
         return self.matvec(x)
 
 
 class HMatrix:
-    def __init__(self, A, Hq):
+    def __init__(self, A: AMatrix, E):
         self.A = A
-        self.Hq = csc_matrix(Hq)
+        self.E = csc_matrix(E)
 
     def matvec(self, x):
-        return (self.A @ x) + (self.Hq @ x)
+        return (self.A @ x) + (self.E @ x)
 
     def dot(self, x):
         return self.matvec(x)
 
     def __matmul__(self, x):
         return self.matvec(x)
+
+    def materialize(self):
+        return self.A.materialize() + self.E.toarray()

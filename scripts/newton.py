@@ -4,6 +4,7 @@ from scipy.optimize import line_search
 
 from friction_cone import FrictionCones
 from matrix_wrappers import AMatrix, HMatrix, MMatrix
+from trust_newton import trust_region_newton_cg
 
 
 def inner_newton_cg(z0, g, r, d, H, tol, cg_max_iter):
@@ -44,7 +45,7 @@ def inner_newton_cg(z0, g, r, d, H, tol, cg_max_iter):
     else:
         return z0, 1
 
-def newton(fun, df, hess, x0, tol, cones):
+def newton(fun, df, hess, x0, tol, cg_tol, cones):
     x = x0.copy()
     max_iter = len(x0) * 100
     cg_max_iter = len(x0) * 20
@@ -56,7 +57,7 @@ def newton(fun, df, hess, x0, tol, cones):
 
         z0 = np.zeros_like(x)
         r, d, p = g.copy(), -g, -g
-        p, info = inner_newton_cg(z0=z0, g=g, r=r, d=d, H=H, tol=tol, cg_max_iter=cg_max_iter)
+        p, info = inner_newton_cg(z0=z0, g=g, r=r, d=d, H=H, tol=cg_tol, cg_max_iter=cg_max_iter)
 
         # Line search
         alpha, _, _, f_old, f_old_old, _ = line_search(fun, df, x, p, g, f_old, f_old_old)
@@ -67,13 +68,13 @@ def newton(fun, df, hess, x0, tol, cones):
         # Take the step if it keeps us in the cone
         proposed_update = alpha * p
         proposed_x = x + proposed_update
-        if cones.in_cone(proposed_x):
-            update = proposed_update
-            x = proposed_x
-        else:  # we must have left the cone at some point, find when
-            min_t = cones.get_min_t(x, p)
-            update = min_t * p
-            x += update
+        # if cones.in_cone(proposed_x):
+        update = proposed_update
+        x = proposed_x
+        # else:  # we must have left the cone at some point, find when
+        #     min_t = cones.get_min_t(x, p)
+        #     update = min_t * p
+        #     x += update
 
         if np.linalg.norm(update) < tol:
             break
@@ -131,10 +132,11 @@ def cone_solve(M, bias, v, J, mu, penetrations, h, result):
         return 0.5 * f.T @ (A @ f) + f.T @ v0 + q(A @ f + v0)
 
     def d_obj(f):
-        return A @ f + v0 + dq(A @ f + v0)
+        return A @ f + v0 + A @ dq(A @ f + v0)
 
     def h_obj(f):
-        return HMatrix(A, hq(A @ f + v0))
+        tmp = A @ hq(A @ f + v0)
+        return HMatrix(A=A, E=A @ tmp.T).materialize()
 
     if num_contacts_pts == 0:
         gen_forces = C
@@ -142,7 +144,17 @@ def cone_solve(M, bias, v, J, mu, penetrations, h, result):
         f0 = np.zeros(num_contacts_pts * 3)
         for i in range(num_contacts_pts):
             f0[i * 3] = 1.0
-        f = newton(obj, d_obj, h_obj, f0, 1e-8, cones)
+        # f = newton(obj, d_obj, h_obj, f0, 1e-5, 1e-8, cones)
+        # f, info = trust_region_newton_cg(fun=obj, x0=f0, jac=d_obj, hess=h_obj, g_tol=1e-5)
+
+        from scipy.optimize import minimize
+        def ineq_constraint(f, mu):
+            return np.array([f[3*i] * mu[i] - np.linalg.norm(f[3*i+1: 3*i+3]) for i in range(len(mu))])
+
+        res = minimize(obj, f0, jac=d_obj, hess=h_obj, method='SLSQP',
+                       constraints = {'type': 'ineq', 'fun': lambda f: ineq_constraint(f, mu)})
+
+        f = res.x
         contact_imp = (J_sc.T @ f) / h
         gen_forces = C + contact_imp
 

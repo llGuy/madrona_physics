@@ -7,6 +7,7 @@ import scipy.sparse as sp
 import madrona_stick as s
 
 from newton import cone_solve
+from scripts.reduced_primal import reduced_primal
 
 np.set_printoptions(threshold=np.inf)
 np.set_printoptions(linewidth=np.inf)
@@ -137,4 +138,4 @@ def mass_solve(M, bias, v, J, mu, penetrations, h, result):
 if __name__ == "__main__":
     num_worlds = 1
     app = s.PhysicsApp(num_worlds)
-    app.run(cone_solve)
+    app.run(reduced_primal)
