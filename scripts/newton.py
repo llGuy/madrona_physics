@@ -3,6 +3,7 @@ import scipy
 import scipy.sparse as sp
 from scipy.optimize import line_search
 
+from scripts.friction_cone import FrictionCones
 from scripts.matrix_wrappers import AMatrix, HMatrix, MMatrix
 
 
@@ -44,7 +45,7 @@ def inner_newton_cg(z0, g, r, d, H, tol, cg_max_iter):
     else:
         return z0, 1
 
-def newton(fun, df, hess, x0, tol):
+def newton(fun, df, hess, x0, tol, cones):
     x = x0.copy()
     max_iter = len(x0) * 100
     cg_max_iter = len(x0) * 20
@@ -62,8 +63,20 @@ def newton(fun, df, hess, x0, tol):
         alpha, _, _, f_old, f_old_old, _ = line_search(fun, df, x, p, g, f_old, f_old_old)
         if alpha is None:
             return x
-        update = alpha * p
-        x += update
+
+        # Take the step if it keeps us in the cone
+        proposed_update = alpha * p
+        proposed_x = x + proposed_update
+        if cones.in_cone(proposed_x):
+            update = proposed_update
+            x = proposed_x
+        else:  # Project
+            # Get where time of friction cone intersection
+            min_t = cones.get_min_t(x, p)
+            print(min_t)
+            update = min_t * p
+            x += update
+
         if np.linalg.norm(update) < tol:
             break
 
@@ -80,6 +93,9 @@ def cone_solve(M, bias, v, J, mu, penetrations, h, result):
     # Matrix wrappers
     M_m = MMatrix(M=M)
     A = AMatrix(M=M_m, J=J)
+
+    # Friction cones
+    cones = FrictionCones(mus=mu)
 
     C = -bias
     J_sc = sp.csc_matrix(J)
@@ -125,9 +141,11 @@ def cone_solve(M, bias, v, J, mu, penetrations, h, result):
     if num_contacts_pts == 0:
         gen_forces = C
     else:
-        # f = scipy.optimize.minimize(obj, x0=np.zeros(num_contacts_pts * 3), jac=d_obj, hess=h_obj, method='Newton-CG')
-        # f = f.x
-        f = newton(obj, d_obj, h_obj, np.zeros(num_contacts_pts * 3), 1e-3)
+        f0 = np.zeros(num_contacts_pts * 3)
+        for i in range(num_contacts_pts):
+            f0[i * 3] = 1.0
+        print(f0, cones.in_cone(f0))
+        f = newton(obj, d_obj, h_obj, f0, 1e-3, cones)
         contact_imp = (J_sc.T @ f) / h
         gen_forces = C + contact_imp
 
