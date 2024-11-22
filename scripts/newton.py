@@ -4,7 +4,6 @@ from scipy.optimize import line_search
 
 from friction_cone import FrictionCones
 from matrix_wrappers import AMatrix, HMatrix, MMatrix
-from trust_newton import trust_region_newton_cg
 
 
 def inner_newton_cg(z0, g, r, d, H, tol, cg_max_iter):
