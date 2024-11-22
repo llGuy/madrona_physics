@@ -97,7 +97,7 @@ def reduced_primal(M, bias, v, J, mu, penetrations, h, result):
         Computes weights for each contact component
         """
         # Weights for each contact component
-        weight = 5 * np.ones(jar.shape[0])  # TODO define these
+        weight = 1 * np.ones(jar.shape[0])  # TODO define these
 
         # Get the weighting for the middle zone
         in_normal = np.zeros_like(jar, dtype=bool)
