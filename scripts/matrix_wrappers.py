@@ -22,6 +22,9 @@ class MMatrix:
     def materialize_inverse(self):
         return np.linalg.inv(self.M.toarray())
 
+    def materialize(self):
+        return self.materialize_inverse()
+
 
 class AMatrix:
     # A = J @ M^{-1} @ J.T, but rather than storing A, we store M and J
@@ -43,7 +46,10 @@ class AMatrix:
 
 
 class HMatrix:
-    def __init__(self, A: AMatrix, E):
+    """
+    Wrapper for Hessian matrix of the form A + E, where A is a wrapper
+    """
+    def __init__(self, A, E):
         self.A = A
         self.E = csc_matrix(E)
 

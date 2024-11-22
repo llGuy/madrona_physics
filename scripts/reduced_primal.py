@@ -2,6 +2,8 @@ import numpy as np
 import scipy.sparse as sp
 
 from matrix_wrappers import MMatrix
+from matrix_wrappers import HMatrix
+from newton import newton
 
 
 def get_aref(v, J, r, h):
@@ -95,7 +97,7 @@ def reduced_primal(M, bias, v, J, mu, penetrations, h, result):
         Computes weights for each contact component
         """
         # Weights for each contact component
-        weight = 10 * np.ones(jar.shape[0])  # TODO define these
+        weight = 5 * np.ones(jar.shape[0])  # TODO define these
 
         # Get the weighting for the middle zone
         in_normal = np.zeros_like(jar, dtype=bool)
@@ -103,8 +105,8 @@ def reduced_primal(M, bias, v, J, mu, penetrations, h, result):
         weight_normal = weight[in_normal]
 
         # TODO: check, we want continuity of s for bottom -> middle
-        middle_weight = weight_normal / (mu ** 2 * (1 + mu ** 2))
-        # middle_weight = weight_normal / (1 + mu ** 2)
+        # middle_weight = weight_normal / (mu ** 2 * (1 + mu ** 2))
+        middle_weight = weight_normal / (1 + mu ** 2)
         return weight, middle_weight
 
     def s(jar):
@@ -117,10 +119,11 @@ def reduced_primal(M, bias, v, J, mu, penetrations, h, result):
         weight, middle_weight = get_contact_weights(jar)
 
         cost = 0
-        # Cost for bottom zone
+        # Cost for bottom zone is sum of squares
         for ib in ind_bottom:
             N, T1, T2 = jar[3 * ib], jar[3 * ib + 1], jar[3 * ib + 2]
-            cost += 0.5 * weight[ib] * (N ** 2 + T1 ** 2 + T2 ** 2)
+            WN, WT1, WT2 = weight[3 * ib], weight[3 * ib + 1], weight[3 * ib + 2]
+            cost += 0.5 * (WN * N ** 2 + WT1 * T1 ** 2 + WT2 * T2 ** 2)
 
         # Cost for middle zone is quadratic in (N - mu * T)
         for im in ind_middle:
@@ -141,9 +144,9 @@ def reduced_primal(M, bias, v, J, mu, penetrations, h, result):
         #   d/dT_i (cost) = D * T_i
         for ib in ind_bottom:
             N, T1, T2 = jar[3 * ib], jar[3 * ib + 1], jar[3 * ib + 2]
-            out[3 * ib] += weight[ib] * N
-            out[3 * ib + 1] += weight[ib] * T1
-            out[3 * ib + 2] += weight[ib] * T2
+            out[3 * ib] += weight[3 * ib] * N
+            out[3 * ib + 1] += weight[3 * ib + 1] * T1
+            out[3 * ib + 2] += weight[3 * ib + 2] * T2
 
         # Middle zone: Cost is (1/2) * D_middle * (N - mu * T)^2
         #  d/dN (cost) = D_middle * (N - mu * T)
@@ -151,36 +154,79 @@ def reduced_primal(M, bias, v, J, mu, penetrations, h, result):
         for im in ind_middle:
             N, T1, T2 = jar[3 * im], jar[3 * im + 1], jar[3 * im + 2]
             T = np.linalg.norm([T1, T2])
-            out[3 * im] += middle_weight[im] * (N - mu[im] * T)
-            out[3 * im + 1] += -middle_weight[im] * mu[im] * T1 * (N - mu[im] * T) / T
-            out[3 * im + 2] += -middle_weight[im] * mu[im] * T2 * (N - mu[im] * T) / T
+            W = middle_weight[im]
+            out[3 * im] += W * (N - mu[im] * T)
+            out[3 * im + 1] += -W * mu[im] * T1 * (N - mu[im] * T) / T
+            out[3 * im + 2] += -W * mu[im] * T2 * (N - mu[im] * T) / T
 
         return out
 
+    def add_hessian_entry(rows, cols, data, i, r, c, v):
+        """
+        Adds entry to the temporary storage for building the Hessian
+        """
+        rows[i], cols[i], data[i] = r, c, v
+
+
     def hs(jar):
-        raise NotImplementedError
+        normal, tangent = get_normal_tangent(jar)
+        ind_top, ind_bottom, ind_middle = compute_zones(normal, tangent)
+        weight, middle_weight = get_contact_weights(jar)
+
+        # Build sparse matrix the inexpensive way
+        n_values = 3 * ind_bottom.size + 9 * ind_middle.size
+        # These store the (row, column) indices and values of the Hessian
+        rows, cols = np.zeros(n_values, dtype=np.uint32), np.zeros(n_values, dtype=np.uint32)
+        data = np.zeros(n_values, dtype=np.float64)
+        idx = 0 # How many temporary values we have stored
+
+        # Bottom zone: Cost is (1/2) * D * (N^2 + T_1^2 + T_2^2)
+        #   Mixed derivatives are zero
+        for ib in ind_bottom:
+            add_hessian_entry(rows, cols, data, idx, 3 * ib, 3 * ib, weight[3 * ib])
+            add_hessian_entry(rows, cols, data, idx + 1, 3 * ib + 1, 3 * ib + 1, weight[3 * ib + 1])
+            add_hessian_entry(rows, cols, data, idx + 2, 3 * ib + 2, 3 * ib + 2, weight[3 * ib + 2])
+            idx += 3
+
+        # Middle zone: Cost is (1/2) * D_middle * (N - mu * T)^2
+        for im in ind_middle:
+            N, T1, T2 = jar[3 * im], jar[3 * im + 1], jar[3 * im + 2]
+            T = np.linalg.norm([T1, T2])
+            W = middle_weight[im]
+            N_idx, T1_idx, T2_idx = 3 * im, 3 * im + 1, 3 * im + 2
+            # Respect to N
+            add_hessian_entry(rows, cols, data, idx, N_idx, N_idx, W)
+            add_hessian_entry(rows, cols, data, idx + 1, N_idx, T1_idx, -W * mu[im] * T1 / T)
+            add_hessian_entry(rows, cols, data, idx + 2, N_idx, T2_idx, -W * mu[im] * T2 / T)
+            # Respect to T1
+            add_hessian_entry(rows, cols, data, idx + 3, T1_idx, N_idx, -W * mu[im] * T1 / T)
+            add_hessian_entry(rows, cols, data, idx + 4, T1_idx, T1_idx, W * mu[im] * (mu[im] - ((N * T2 ** 2) / T ** 3)))
+            add_hessian_entry(rows, cols, data, idx + 5, T1_idx, T2_idx, W * mu[im] * (N * T1 * T2) / T ** 3)
+            # Respect to T2
+            add_hessian_entry(rows, cols, data, idx + 6, T2_idx, N_idx, -W * mu[im] * T2 / T)
+            add_hessian_entry(rows, cols, data, idx + 7, T2_idx, T1_idx, W * mu[im] * (N * T1 * T2) / T ** 3)
+            add_hessian_entry(rows, cols, data, idx + 8, T2_idx, T2_idx, W * mu[im] * (mu[im] - ((N * T1 ** 2) / T ** 3)))
+            idx += 9
+
+        hess = sp.csc_matrix((data, (rows, cols)), shape=(jar.shape[0], jar.shape[0]))
+        return hess
 
     def obj(x):
         x_min_a_free = x - a_free
-        return a_free.T @ (M @ x_min_a_free) + s(J @ x - a_ref)
+        return 0.5 * x_min_a_free.T @ (M @ x_min_a_free) + s(J @ x - a_ref)
 
     def d_obj(x):
         x_min_a_free = x - a_free
-        return 2 * (M @ x_min_a_free) + J.T @ ds(J @ x - a_ref)
+        return (M @ x_min_a_free) + J.T @ ds(J @ x - a_ref)
 
     def h_obj(x):
-        # TODO: eventually implement hs and make new wrapper
-        # 2 * M + J.T @ hs(J @ x - a_ref) @ J
-        raise NotImplementedError
+        return HMatrix(A=M, E=J.T @ hs(J @ x - a_ref) @ J)
 
     # Solve for x (\dot v)
     if num_contacts_pts == 0:
         result[:] = a_free
     else:
-        # TODO: run optimization
-        import scipy
-        a_solve = scipy.optimize.minimize(obj, a_free, jac=d_obj, method="BFGS")
-        # result[:] = scipy.linalg.pinv(J_og) @ a_ref
-        result[:] = a_solve.x
+        a_solve = newton(fun=obj, df=d_obj, hess=h_obj, x0=a_free, tol=1e-6, cg_tol=1e-8)
+        result[:] = a_solve
 
     return

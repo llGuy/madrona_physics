@@ -44,7 +44,8 @@ def inner_newton_cg(z0, g, r, d, H, tol, cg_max_iter):
     else:
         return z0, 1
 
-def newton(fun, df, hess, x0, tol, cg_tol, cones):
+
+def newton(fun, df, hess, x0, tol, cg_tol):
     x = x0.copy()
     max_iter = len(x0) * 100
     cg_max_iter = len(x0) * 20
@@ -61,24 +62,17 @@ def newton(fun, df, hess, x0, tol, cg_tol, cones):
         # Line search
         alpha, _, _, f_old, f_old_old, _ = line_search(fun, df, x, p, g, f_old, f_old_old)
         if alpha is None:
-            print("Line search failed")
+            print("Line search failed")  # why :(
             return x
 
-        # Take the step if it keeps us in the cone
-        proposed_update = alpha * p
-        proposed_x = x + proposed_update
-        # if cones.in_cone(proposed_x):
-        update = proposed_update
-        x = proposed_x
-        # else:  # we must have left the cone at some point, find when
-        #     min_t = cones.get_min_t(x, p)
-        #     update = min_t * p
-        #     x += update
+        update = alpha * p
+        x += update
 
-        if np.linalg.norm(update) < tol:
+        if np.linalg.norm(update) < tol or np.linalg.norm(g) < tol:
             break
 
     return x
+
 
 def cone_solve(M, bias, v, J, mu, penetrations, h, result):
     """
@@ -148,10 +142,10 @@ def cone_solve(M, bias, v, J, mu, penetrations, h, result):
 
         from scipy.optimize import minimize
         def ineq_constraint(f, mu):
-            return np.array([f[3*i] * mu[i] - np.linalg.norm(f[3*i+1: 3*i+3]) for i in range(len(mu))])
+            return np.array([f[3 * i] * mu[i] - np.linalg.norm(f[3 * i + 1: 3 * i + 3]) for i in range(len(mu))])
 
         res = minimize(obj, f0, jac=d_obj, hess=h_obj, method='SLSQP',
-                       constraints = {'type': 'ineq', 'fun': lambda f: ineq_constraint(f, mu)})
+                       constraints={'type': 'ineq', 'fun': lambda f: ineq_constraint(f, mu)})
 
         f = res.x
         contact_imp = (J_sc.T @ f) / h
