@@ -135,6 +135,8 @@ struct AppWrapper {
             .cameraRotation = { 0.944346f, -0.054453f, -0.018675f, 0.323878f },
         });
 
+        uint32_t step_i = 0;
+
         // Main loop for the viewer viewer
         viewer.loop(
             [this](CountT /* world_idx */, const Viewer::UserInput &/* input */) {
@@ -143,11 +145,31 @@ struct AppWrapper {
             , [this](CountT /* world_idx */, CountT /* agent_idx */,
                    const Viewer::UserInput & /* input */) {
                 // No input
-            }, [this]() {
+            }, [this, &step_i]() {
                 mgr->step();
+
+                printf("step: %u\n", step_i);
+                step_i++;
             }, [this]() {
                 // No ImGui windows for now
             });
+    }
+};
+
+struct HeadlessWrapper {
+    Manager *mgr;
+    uint32_t numWorlds;
+    uint32_t numSteps;
+
+    CVXSolveData *solveData;
+    madrona::phys::CVXSolve *solve;
+
+    void run()
+    {
+        for (uint32_t i = 0; i < numSteps; ++i) {
+            printf("step: %u\n", i);
+            mgr->step();
+        }
     }
 };
 
@@ -160,6 +182,43 @@ void run(AppWrapper *self, PyFn &&py_call_fn)
 
 NB_MODULE(madrona_stick, m) {
     madrona::py::setupMadronaSubmodule(m);
+
+    nb::class_<HeadlessWrapper> (m, "HeadlessRun")
+        .def("__init__", [](HeadlessWrapper *self,
+                            int64_t num_worlds,
+                            int64_t num_steps) {
+            CVXSolveData *solve_data = new CVXSolveData {
+                false
+            };
+
+            madrona::phys::CVXSolve *solve_fn = new madrona::phys::CVXSolve {
+                cvxSolveCall, solve_data, 0
+            };
+
+            Manager *mgr = new Manager (Manager::Config {
+                .execMode = madrona::ExecMode::CPU,
+                .gpuID = 0,
+                .numWorlds = (uint32_t)num_worlds,
+                .randSeed = 5,
+                .cvxSolve = solve_fn
+            });
+
+            new (self) HeadlessWrapper {
+                .mgr = mgr,
+                .numWorlds = (uint32_t)num_worlds,
+                .numSteps = (uint32_t)num_steps,
+                .solveData = solve_data,
+                .solve = solve_fn,
+            };
+        })
+        .def("run", [](HeadlessWrapper *self,
+                       nb::callable cvx_solve) {
+            self->solveData->init = true;
+            self->solveData->call = cvx_solve;
+
+            self->run();
+        })
+    ;
 
     nb::class_<AppWrapper> (m, "PhysicsApp")
         .def("__init__", [](AppWrapper *self,
@@ -199,12 +258,10 @@ NB_MODULE(madrona_stick, m) {
         })
         .def("run", [](AppWrapper *self,
                        nb::callable cvx_solve) {
-#if 1
             self->solveData->init = true;
             self->solveData->call = cvx_solve;
 
             self->run();
-#endif
         })
     ;
 }

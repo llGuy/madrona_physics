@@ -130,6 +130,18 @@ Sim::Sim(Engine &ctx,
                         cfg.cvxSolve);
     RenderingSystem::init(ctx, cfg.renderBridge);
 
+    for (int i = 0; i < 3; ++i) {
+        Entity grp = cv::makeCVBodyGroup(ctx);
+        Entity e = makeDynObject(ctx,
+                          Vector3{ 0.f, 0.f, 60.0f + (float)i * 4.0f },
+                          Quat::angleAxis(1.f, { 1.f, 1.f, 1.f }),
+                          Diag3x3{ 1.f, 1.f, 1.f },
+                          ResponseType::Dynamic,
+                          SimObject::Stick,
+                          6);
+        cv::setCVGroupRoot(ctx, grp, e);
+    }
+
     { // Make the articulated sticks
         stickBodyGrp = cv::makeCVBodyGroup(ctx);
 

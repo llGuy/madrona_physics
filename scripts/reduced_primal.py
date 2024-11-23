@@ -229,4 +229,6 @@ def reduced_primal(M, bias, v, J, mu, penetrations, h, result):
         a_solve = newton(fun=obj, df=d_obj, hess=h_obj, x0=a_free, tol=1e-6, cg_tol=1e-8)
         result[:] = a_solve
 
+    print(result)
+
     return
