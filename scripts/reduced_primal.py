@@ -1,3 +1,6 @@
+"""
+Solves the reduced primal problem of finding the acceleration with soft constraints
+"""
 import numpy as np
 import scipy.sparse as sp
 
@@ -61,7 +64,7 @@ def reduced_primal(M, bias, v, J, mu, penetrations, h, result):
     # Define convex s and our objective
     def get_normal_tangent(jar):
         """
-        Helper function for computing the mu * normal and \|tangent\|
+        Helper function for computing normal and \|tangent\|
         """
         in_normal = np.zeros_like(jar, dtype=bool)
         in_normal[0::3] = True
@@ -72,12 +75,18 @@ def reduced_primal(M, bias, v, J, mu, penetrations, h, result):
         return jar_normal, jar_tangent
 
     def compute_zones(normal, tangent, assert_check=False):
+        """
+        Returns the indices for [normal, tangent] for the
+            top, bottom, and middle zones defined as:
+        top zone:       p_N >= mu * |p_T|
+        middle zone:    p_N < mu * |p_T| and mu * p_N + |p_T| > 0
+        bottom zone:    mu * p_N + |p_T| <= 0
+        """
         mu_normal = np.multiply(mu, normal)
         mu_tangent = np.multiply(mu, tangent)
-        inv_mu_normal = np.multiply(1 / mu, normal)
 
         # Top zone (inside dual cone)
-        ind_top = np.where(inv_mu_normal >= tangent)[0]
+        ind_top = np.where(normal >= mu_tangent)[0]
 
         # Bottom zone (reflection of K across x-axis)
         ind_bottom = np.where(mu_normal + tangent <= 0)[0]
@@ -128,7 +137,7 @@ def reduced_primal(M, bias, v, J, mu, penetrations, h, result):
         # Cost for middle zone is quadratic in (N - mu * T)
         for im in ind_middle:
             N, T1, T2 = jar[3 * im], jar[3 * im + 1], jar[3 * im + 2]
-            T = np.linalg.norm([T1, T2])
+            T = np.sqrt(T1 ** 2 + T2 ** 2)
             cost += 0.5 * middle_weight[im] * (N - mu[im] * T) ** 2
         return cost
 
@@ -144,29 +153,34 @@ def reduced_primal(M, bias, v, J, mu, penetrations, h, result):
         #   d/dT_i (cost) = D * T_i
         for ib in ind_bottom:
             N, T1, T2 = jar[3 * ib], jar[3 * ib + 1], jar[3 * ib + 2]
-            out[3 * ib] += weight[3 * ib] * N
-            out[3 * ib + 1] += weight[3 * ib + 1] * T1
-            out[3 * ib + 2] += weight[3 * ib + 2] * T2
+            WN, WT1, WT2 = weight[3 * ib], weight[3 * ib + 1], weight[3 * ib + 2]
+            out[3 * ib] = WN * N
+            out[3 * ib + 1] = WT1 * T1
+            out[3 * ib + 2] = WT2 * T2
 
         # Middle zone: Cost is (1/2) * D_middle * (N - mu * T)^2
         #  d/dN (cost) = D_middle * (N - mu * T)
         #  d/dT_i (cost = -D_middle * mu*T_i * (N - mu * T) / T
         for im in ind_middle:
             N, T1, T2 = jar[3 * im], jar[3 * im + 1], jar[3 * im + 2]
-            T = np.linalg.norm([T1, T2])
+            T = np.sqrt(T1 ** 2 + T2 ** 2)
             W = middle_weight[im]
-            out[3 * im] += W * (N - mu[im] * T)
-            out[3 * im + 1] += -W * mu[im] * T1 * (N - mu[im] * T) / T
-            out[3 * im + 2] += -W * mu[im] * T2 * (N - mu[im] * T) / T
+            tmp = W * (N - mu[im] * T)
+            out[3 * im] = tmp
+            out[3 * im + 1] = -tmp * mu[im] * T1 / T
+            out[3 * im + 2] = -tmp * mu[im] * T2 / T
 
         return out
 
-    def add_hessian_entry(rows, cols, data, i, r, c, v):
+    def add_hessian_entry(
+            rows: np.ndarray,
+            cols: np.ndarray,
+            data: np.ndarray,
+            i: int, r: int, c: int, v: float):
         """
         Adds entry to the temporary storage for building the Hessian
         """
         rows[i], cols[i], data[i] = r, c, v
-
 
     def hs(jar):
         normal, tangent = get_normal_tangent(jar)
@@ -178,34 +192,37 @@ def reduced_primal(M, bias, v, J, mu, penetrations, h, result):
         # These store the (row, column) indices and values of the Hessian
         rows, cols = np.zeros(n_values, dtype=np.uint32), np.zeros(n_values, dtype=np.uint32)
         data = np.zeros(n_values, dtype=np.float64)
-        idx = 0 # How many temporary values we have stored
+        idx = 0  # How many temporary values we have stored
 
         # Bottom zone: Cost is (1/2) * D * (N^2 + T_1^2 + T_2^2)
         #   Mixed derivatives are zero
         for ib in ind_bottom:
-            add_hessian_entry(rows, cols, data, idx, 3 * ib, 3 * ib, weight[3 * ib])
-            add_hessian_entry(rows, cols, data, idx + 1, 3 * ib + 1, 3 * ib + 1, weight[3 * ib + 1])
-            add_hessian_entry(rows, cols, data, idx + 2, 3 * ib + 2, 3 * ib + 2, weight[3 * ib + 2])
+            N_idx, T1_idx, T2_idx = 3 * ib, 3 * ib + 1, 3 * ib + 2
+            add_hessian_entry(rows, cols, data, idx, N_idx, N_idx, weight[N_idx])
+            add_hessian_entry(rows, cols, data, idx + 1, T1_idx, T1_idx, weight[T1_idx])
+            add_hessian_entry(rows, cols, data, idx + 2, T2_idx, T2_idx, weight[T2_idx])
             idx += 3
 
         # Middle zone: Cost is (1/2) * D_middle * (N - mu * T)^2
         for im in ind_middle:
-            N, T1, T2 = jar[3 * im], jar[3 * im + 1], jar[3 * im + 2]
-            T = np.linalg.norm([T1, T2])
-            W = middle_weight[im]
             N_idx, T1_idx, T2_idx = 3 * im, 3 * im + 1, 3 * im + 2
+            N, T1, T2 = jar[N_idx], jar[T1_idx], jar[T2_idx]
+            T = np.sqrt(T1 ** 2 + T2 ** 2)
+            W = middle_weight[im]
             # Respect to N
             add_hessian_entry(rows, cols, data, idx, N_idx, N_idx, W)
             add_hessian_entry(rows, cols, data, idx + 1, N_idx, T1_idx, -W * mu[im] * T1 / T)
             add_hessian_entry(rows, cols, data, idx + 2, N_idx, T2_idx, -W * mu[im] * T2 / T)
             # Respect to T1
             add_hessian_entry(rows, cols, data, idx + 3, T1_idx, N_idx, -W * mu[im] * T1 / T)
-            add_hessian_entry(rows, cols, data, idx + 4, T1_idx, T1_idx, W * mu[im] * (mu[im] - ((N * T2 ** 2) / T ** 3)))
+            add_hessian_entry(rows, cols, data, idx + 4, T1_idx, T1_idx,
+                              W * mu[im] * (mu[im] - ((N * T2 ** 2) / T ** 3)))
             add_hessian_entry(rows, cols, data, idx + 5, T1_idx, T2_idx, W * mu[im] * (N * T1 * T2) / T ** 3)
             # Respect to T2
             add_hessian_entry(rows, cols, data, idx + 6, T2_idx, N_idx, -W * mu[im] * T2 / T)
             add_hessian_entry(rows, cols, data, idx + 7, T2_idx, T1_idx, W * mu[im] * (N * T1 * T2) / T ** 3)
-            add_hessian_entry(rows, cols, data, idx + 8, T2_idx, T2_idx, W * mu[im] * (mu[im] - ((N * T1 ** 2) / T ** 3)))
+            add_hessian_entry(rows, cols, data, idx + 8, T2_idx, T2_idx,
+                              W * mu[im] * (mu[im] - ((N * T1 ** 2) / T ** 3)))
             idx += 9
 
         hess = sp.csc_matrix((data, (rows, cols)), shape=(jar.shape[0], jar.shape[0]))
@@ -226,9 +243,9 @@ def reduced_primal(M, bias, v, J, mu, penetrations, h, result):
     if num_contacts_pts == 0:
         result[:] = a_free
     else:
-        a_solve = newton(fun=obj, df=d_obj, hess=h_obj, x0=a_free, tol=1e-6, cg_tol=1e-8)
+        a_solve = newton(fun=obj, df=d_obj, hess=h_obj, x0=a_free, tol=1e-10, cg_tol=1e-8)
         result[:] = a_solve
 
-    print(result)
+    # print(result)
 
     return

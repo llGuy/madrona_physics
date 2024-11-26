@@ -1,11 +1,26 @@
 import numpy as np
 from scipy.sparse import csc_matrix
-from scipy.sparse.linalg import spsolve
+from scipy.sparse.linalg import splu
 
 
-class MMatrix:
+class MatrixWrapper:
+    def matvec(self, x):
+        raise NotImplementedError
+
+    def dot(self, x):
+        raise NotImplementedError
+
+    def __matmul__(self, x):
+        return self.matvec(x)
+
+    def materialize(self):
+        raise NotImplementedError
+
+
+class MMatrix(MatrixWrapper):
     def __init__(self, M):
         self.M = csc_matrix(M)
+        self.LU = splu(self.M)  # Eventually should be a Cholesky factorization
 
     def matvec(self, x):
         return self.M @ x
@@ -13,11 +28,8 @@ class MMatrix:
     def dot(self, x):
         return self.matvec(x)
 
-    def __matmul__(self, x):
-        return self.matvec(x)
-
     def solve(self, x):
-        return spsolve(self.M, x)
+        return self.LU.solve(x)
 
     def materialize_inverse(self):
         return np.linalg.inv(self.M.toarray())
@@ -26,7 +38,7 @@ class MMatrix:
         return self.materialize_inverse()
 
 
-class AMatrix:
+class AMatrix(MatrixWrapper):
     # A = J @ M^{-1} @ J.T, but rather than storing A, we store M and J
     def __init__(self, M: MMatrix, J):
         self.M = M
@@ -41,14 +53,12 @@ class AMatrix:
     def materialize(self):
         return self.J @ self.M.materialize_inverse() @ self.J.T
 
-    def __matmul__(self, x):
-        return self.matvec(x)
 
-
-class HMatrix:
+class HMatrix(MatrixWrapper):
     """
     Wrapper for Hessian matrix of the form A + E, where A is a wrapper
     """
+
     def __init__(self, A, E):
         self.A = A
         self.E = csc_matrix(E)
@@ -57,9 +67,6 @@ class HMatrix:
         return (self.A @ x) + (self.E @ x)
 
     def dot(self, x):
-        return self.matvec(x)
-
-    def __matmul__(self, x):
         return self.matvec(x)
 
     def materialize(self):
