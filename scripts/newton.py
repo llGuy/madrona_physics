@@ -55,8 +55,6 @@ def newton(fun, df, hess, x0, tol):
     x = x0.copy()
     avg_tol = tol * len(x0)
     max_iter = len(x0) * 100
-    f_old = fun(x)
-    f_old_old = None
     for i in range(max_iter):
         # Newton step
         g = df(x)
@@ -66,7 +64,7 @@ def newton(fun, df, hess, x0, tol):
         p = spsolve(H, -g)
 
         # Line search
-        alpha, _, _, f_old, f_old_old, _ = line_search(fun, df, x, p, g, f_old, f_old_old)
+        alpha = line_search(fun, df, x, p, g)[0]
         if alpha is None:
             print("Is descent direction?", np.dot(g, p) < 0)
             print("Line search failed")  # why :(
