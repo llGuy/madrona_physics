@@ -58,7 +58,7 @@ def newton(fun, df, hess, x0, tol):
     for i in range(max_iter):
         # Newton step
         g = df(x)
-        if np.linalg.norm(g) < tol:
+        if np.linalg.norm(g) < avg_tol:
             break
         H = hess(x)
         p = spsolve(H, -g)

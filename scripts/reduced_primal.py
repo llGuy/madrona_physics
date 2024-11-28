@@ -240,10 +240,13 @@ def reduced_primal(M, bias, v, J, mu, penetrations, h, result):
         # return HMatrix(A=M, E=J.T @ hs(J @ x - a_ref) @ J)
         return M.M + J.T @ hs(J @ x - a_ref) @ J
 
+
     # Solve for x (\dot v)
     if num_contacts_pts == 0:
         result[:] = a_free
     else:
+        # Tolerance of 1e-5 is around the lowest we can get with 32bit floats
+        #   and given the condition number of M
         a_solve = newton(fun=obj, df=d_obj, hess=h_obj, x0=a_free, tol=1e-5)
         result[:] = a_solve
 
