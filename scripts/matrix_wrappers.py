@@ -42,7 +42,7 @@ class AMatrix(MatrixWrapper):
     # A = J @ M^{-1} @ J.T, but rather than storing A, we store M and J
     def __init__(self, M: MMatrix, J):
         self.M = M
-        self.J = csc_matrix(J)
+        self.J = J
 
     def matvec(self, x):
         return self.J @ self.M.solve(self.J.T @ x)

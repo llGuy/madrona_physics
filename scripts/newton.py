@@ -3,10 +3,12 @@ Newton related solvers
 """
 import numpy as np
 from scipy.optimize import line_search
+from scipy.sparse.linalg import spsolve
 
 
 def inner_newton_cg(z0, g, r, d, H, tol, cg_max_iter):
     """
+    Currently unused (but may be helpful for larger systems)
     Inner loop for Newton-CG, solves for the search direction p in the linear system
         Hp = -g, where H is the Hessian and g is the gradient.
     """
@@ -45,38 +47,36 @@ def inner_newton_cg(z0, g, r, d, H, tol, cg_max_iter):
 
 
 
-def newton(fun, df, hess, x0, tol, cg_tol):
+def newton(fun, df, hess, x0, tol):
     """
     Minimizes [fun] using Newton's method.
     The search direction [hess]^{-1}[df] is computed using the conjugate gradient method.
     """
     x = x0.copy()
+    avg_tol = tol * len(x0)
     max_iter = len(x0) * 100
-    cg_max_iter = len(x0) * 50
     f_old = fun(x)
     f_old_old = None
     for i in range(max_iter):
-        # Check convergence first
+        # Newton step
         g = df(x)
         if np.linalg.norm(g) < tol:
             break
-
-        # Newton step
         H = hess(x)
-        z0 = np.zeros_like(x)
-        r, d, p = g.copy(), -g, -g
-        p, info = inner_newton_cg(z0=z0, g=g, r=r, d=d, H=H, tol=cg_tol, cg_max_iter=cg_max_iter)
+        p = spsolve(H, -g)
 
         # Line search
         alpha, _, _, f_old, f_old_old, _ = line_search(fun, df, x, p, g, f_old, f_old_old)
         if alpha is None:
+            print("Is descent direction?", np.dot(g, p) < 0)
             print("Line search failed")  # why :(
             return x
 
         update = alpha * p
         x += update
 
-        if np.linalg.norm(update) < tol:
+        if np.linalg.norm(update) < avg_tol:
             break
 
+    print("Average Newton iterations:", i)
     return x

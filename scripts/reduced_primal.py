@@ -237,13 +237,14 @@ def reduced_primal(M, bias, v, J, mu, penetrations, h, result):
         return (M @ x_min_a_free) + J.T @ ds(J @ x - a_ref)
 
     def h_obj(x):
-        return HMatrix(A=M, E=J.T @ hs(J @ x - a_ref) @ J)
+        # return HMatrix(A=M, E=J.T @ hs(J @ x - a_ref) @ J)
+        return M.M + J.T @ hs(J @ x - a_ref) @ J
 
     # Solve for x (\dot v)
     if num_contacts_pts == 0:
         result[:] = a_free
     else:
-        a_solve = newton(fun=obj, df=d_obj, hess=h_obj, x0=a_free, tol=1e-10, cg_tol=1e-8)
+        a_solve = newton(fun=obj, df=d_obj, hess=h_obj, x0=a_free, tol=1e-5)
         result[:] = a_solve
 
     # print(result)
