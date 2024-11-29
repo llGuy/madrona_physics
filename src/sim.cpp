@@ -164,7 +164,7 @@ Sim::Sim(Engine &ctx,
                               Diag3x3{ 1.f, 1.f, 1.f },
                               ResponseType::Dynamic,
                               SimObject::Stick,
-                              1);
+                              3);
 
 
 
@@ -172,13 +172,13 @@ Sim::Sim(Engine &ctx,
         cv::setCVGroupRoot(ctx, stickBodyGrp, stickRoot);
 
         // Configure the parent/child relationship
-        cv::setCVEntityParentHinge(ctx,
+        cv::setCVEntityParentBall(ctx,
                                  stickBodyGrp,
                                  stickRoot,
                                  stickChild,
                                  Vector3 { 0.f, 0.f, 16.f },
-                                 Vector3 { 0.f, 0.f, 16.f },
-                                 Vector3 { 1.f, 0.f, 0.f });
+                                 Vector3 { 0.f, 0.f, 16.f });
+                                 // Vector3 { 1.f, 0.f, 0.f });
     }
 
     { // Make the plane
