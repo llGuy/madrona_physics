@@ -5,8 +5,10 @@ import numpy as np
 import scipy.sparse as sp
 
 from matrix_wrappers import MMatrix
-from matrix_wrappers import HMatrix
 from newton import newton
+
+np.set_printoptions(threshold=np.inf)
+np.set_printoptions(linewidth=np.inf)
 
 
 def get_aref(v, J, r, h):
@@ -33,7 +35,7 @@ def get_aref(v, J, r, h):
     return aref
 
 
-def reduced_primal(M, bias, v, J, mu, penetrations, h, result):
+def reduced_primal(M, a_free, v, J, mu, penetrations, h, result):
     """
     Solves the reduced primal problem:
         min \|x - M^{-1} C\|_M^2 + s(Jx - a_ref)
@@ -50,10 +52,6 @@ def reduced_primal(M, bias, v, J, mu, penetrations, h, result):
     # Matrix wrappers
     M = MMatrix(M=M)
     J = sp.csc_matrix(J)
-
-    # Compute unconstrained acceleration
-    C = -bias
-    a_free = M.solve(C)
 
     # Compute reference acceleration
     r = np.zeros(J.shape[0])

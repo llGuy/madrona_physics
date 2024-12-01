@@ -23,7 +23,7 @@ float *cvxSolveCall(void *vdata,
                     uint32_t num_contact_pts,
                     float h,
                     float *mass,
-                    float *bias,
+                    float *free_acc,
                     float *vel,
                     float *J_c,
                     float *mu,
@@ -46,8 +46,8 @@ float *cvxSolveCall(void *vdata,
         nb::device::cpu::value
     );
 
-    Tensor bias_tensor(
-        bias,
+    Tensor free_acc_tensor(
+        free_acc,
         { total_num_dofs },
         {},
         {},
@@ -105,7 +105,7 @@ float *cvxSolveCall(void *vdata,
         nb::device::cpu::value
     );
 
-    data->call(m_tensor, bias_tensor, vel_tensor, J_tensor,
+    data->call(m_tensor, free_acc_tensor, vel_tensor, J_tensor,
         mu_tensor, pen_tensor, h, ret_tensor);
 
     return ret_data;
