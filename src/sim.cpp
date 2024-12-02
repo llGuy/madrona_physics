@@ -134,7 +134,7 @@ Sim::Sim(Engine &ctx,
     for (int i = 0; i < 3; ++i) {
         Entity grp = cv::makeCVBodyGroup(ctx);
         Entity e = makeDynObject(ctx,
-                          Vector3{ 0.f, 0.f, 60.0f + (float)i * 4.0f },
+                          Vector3{ 20.f, 0.f, 60.0f + (float)i * 4.0f },
                           Quat::angleAxis(1.f, { 1.f, 1.f, 1.f }),
                           Diag3x3{ 1.f, 1.f, 1.f },
                           ResponseType::Dynamic,
@@ -154,7 +154,7 @@ Sim::Sim(Engine &ctx,
         // relationship between the two.
         stickRoot = makeDynObject(ctx,
                               Vector3{ 0.f, 0.f, 60.0f },
-                              Quat::angleAxis(1.f, { 1.f, 1.f, 1.f }),
+                              Quat::angleAxis(0.f, { 0.f, 0.f, 1.f }),
                               Diag3x3{ 1.f, 1.f, 1.f },
                               ResponseType::Dynamic,
                               SimObject::Stick,
@@ -162,12 +162,19 @@ Sim::Sim(Engine &ctx,
 
         stickChild = makeDynObject(ctx,
                               Vector3{ 0.f, 0.f, 40.01f },
-                              Quat::angleAxis(0.5f, { 1.f, 1.f, 1.f }),
+                              Quat::angleAxis(0.5f, { 2.f, 1.f, 1.f }),
                               Diag3x3{ 1.f, 1.f, 1.f },
                               ResponseType::Dynamic,
                               SimObject::Stick,
                               3);
 
+        Entity stickChild2 = makeDynObject(ctx,
+                              Vector3{ 0.f, 0.f, 40.01f },
+                              Quat::angleAxis(0.5f, { 2.f, 1.f, 1.f }),
+                              Diag3x3{ 1.f, 1.f, 1.f },
+                              ResponseType::Dynamic,
+                              SimObject::Stick,
+                              3);
 
 
         // Configure the root of the armature
@@ -181,6 +188,15 @@ Sim::Sim(Engine &ctx,
                                  Vector3 { 0.f, 0.f, 16.f },
                                  Vector3 { 0.f, 0.f, 16.f });
                                  // Vector3 { 1.f, 0.f, 0.f });
+        cv::setCVEntityParentBall(ctx,
+                                 stickBodyGrp,
+                                 stickChild,
+                                 stickChild2,
+                                 Vector3 { 0.f, 0.f, 16.f },
+                                 Vector3 { 0.f, 0.f, 16.f });
+
+        // Once all the hierarchies are built, run initialization
+        cv::initializeHierarchies(ctx);
     }
 
     { // Make the plane
