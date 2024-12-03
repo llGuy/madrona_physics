@@ -43,6 +43,8 @@ def reduced_primal(M, a_free, v, J, mu, penetrations, h, result):
         to be in the constrained space. For contacts,
         this is the dual of the friction cone
     """
+    # Convert J from column-major to row-major
+    J = J.T
     num_contacts_pts = int(J.shape[0] / 3)
 
     # Original matrices

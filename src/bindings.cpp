@@ -66,7 +66,7 @@ float *cvxSolveCall(void *vdata,
 
     Tensor J_tensor(
         J_c,
-        { 3 * num_contact_pts, total_num_dofs },
+        { total_num_dofs, 3 * num_contact_pts },
         {},
         {},
         nb::dtype<float>(),
