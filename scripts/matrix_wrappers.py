@@ -29,6 +29,8 @@ class MMatrix(MatrixWrapper):
         return self.matvec(x)
 
     def solve(self, x):
+        # convert x to float32
+        x = x.astype(np.float32)
         return self.LU.solve(x)
 
     def materialize_inverse(self):

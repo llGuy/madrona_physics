@@ -6,6 +6,7 @@ import scipy.sparse as sp
 
 from matrix_wrappers import MMatrix
 from newton import newton
+from scripts.conjugate_gradient import nonlinear_cg
 
 np.set_printoptions(threshold=np.inf)
 np.set_printoptions(linewidth=np.inf)
@@ -248,8 +249,9 @@ def reduced_primal(M, a_free, v, J, mu, penetrations, h, result):
         # Tolerance of 1e-5 is around the lowest we can get with 32bit floats
         #   and given the condition number of M
         a_solve = newton(fun=obj, df=d_obj, hess=h_obj, x0=a_free, tol=1e-5)
-        result[:] = a_solve
 
-    # print(result)
+        # Slower convergence but easier to implement
+        # a_solve = nonlinear_cg(fun=obj, df=d_obj, x0=a_free, tol=1e-5, M=M)
+        result[:] = a_solve
 
     return

@@ -2,7 +2,6 @@
 Newton related solvers
 """
 import numpy as np
-from scipy.optimize import line_search
 from scipy.optimize._linesearch import line_search_wolfe1
 from scipy.sparse.linalg import spsolve
 
@@ -77,5 +76,5 @@ def newton(fun, df, hess, x0, tol):
         if np.linalg.norm(update) < avg_tol:
             break
 
-    print("Average Newton iterations:", i)
+    print("Newton iterations:", i)
     return x
