@@ -5,8 +5,8 @@ import numpy as np
 import scipy.sparse as sp
 
 from matrix_wrappers import MMatrix
-from newton import newton
 from scripts.conjugate_gradient import nonlinear_cg
+from scripts.newton import newton
 
 np.set_printoptions(threshold=np.inf)
 np.set_printoptions(linewidth=np.inf)
@@ -23,7 +23,8 @@ def get_aref(v, J, r, h):
 
     imp_x = np.abs(r) / width
     imp_a = (1.0 / np.power(mid, power - 1)) * np.power(imp_x, power)
-    imp_b = 1 - (1.0 / np.power(1 - mid, power - 1)) * np.power(1 - imp_x, power)
+    imp_b = 1 - (1.0 / np.power(1 - mid, power - 1)) * np.power(1 - imp_x,
+                                                                power)
     imp_y = np.where(imp_x < mid, imp_a, imp_b)
     imp = d_min + imp_y * (d_max - d_min)
     imp = np.clip(imp, d_min, d_max)
@@ -36,7 +37,7 @@ def get_aref(v, J, r, h):
     return aref
 
 
-def reduced_primal(M, a_free, v, J, mu, penetrations, h, result):
+def reduced_primal(M, a_free, v, J, mus, penetrations, h, result):
     """
     Solves the reduced primal problem:
         min \|x - M^{-1} C\|_M^2 + s(Jx - a_ref)
@@ -63,114 +64,59 @@ def reduced_primal(M, a_free, v, J, mu, penetrations, h, result):
     a_ref = get_aref(v, J, r, h)
 
     # Define convex s and our objective
-    def get_normal_tangent(jar):
-        """
-        Helper function for computing normal and \|tangent\|
-        """
-        in_normal = np.zeros_like(jar, dtype=bool)
-        in_normal[0::3] = True
-
-        jar_normal = jar[in_normal]
-        jar_tangent = jar[~in_normal].reshape(-1, 2)
-        jar_tangent = np.linalg.norm(jar_tangent, axis=1)
-        return jar_normal, jar_tangent
-
-    def compute_zones(normal, tangent, assert_check=False):
-        """
-        Returns the indices for [normal, tangent] for the
-            top, bottom, and middle zones defined as:
-        top zone:       p_N >= mu * |p_T|
-        middle zone:    p_N < mu * |p_T| and mu * p_N + |p_T| > 0
-        bottom zone:    mu * p_N + |p_T| <= 0
-        """
-        mu_normal = np.multiply(mu, normal)
-        mu_tangent = np.multiply(mu, tangent)
-
-        # Top zone (inside dual cone)
-        ind_top = np.where(normal >= mu_tangent)[0]
-
-        # Bottom zone (reflection of K across x-axis)
-        ind_bottom = np.where(mu_normal + tangent <= 0)[0]
-
-        # Middle zone (everything else)
-        ind_middle = np.where((normal < mu_tangent) & (mu_normal + tangent > 0))[0]
-
-        # No overlap between the zones, covers all cases
-        if assert_check:
-            assert np.intersect1d(ind_top, ind_bottom).size == 0
-            assert np.union1d(ind_top, np.union1d(ind_bottom, ind_middle)).size == normal.shape[0]
-
-        return ind_top, ind_bottom, ind_middle
-
-    def get_contact_weights(jar):
-        """
-        Computes weights for each contact component
-        """
-        # Weights for each contact component
-        weight = 1 * np.ones(jar.shape[0])  # TODO define these
-
-        # Get the weighting for the middle zone
-        in_normal = np.zeros_like(jar, dtype=bool)
-        in_normal[0::3] = True
-        weight_normal = weight[in_normal]
-
-        # TODO: check, we want continuity of s for bottom -> middle
-        # middle_weight = weight_normal / (mu ** 2 * (1 + mu ** 2))
-        middle_weight = weight_normal / (1 + mu ** 2)
-        return weight, middle_weight
-
     def s(jar):
         """
         Each dual cone is defined as:
-            K^* = {p | 1 / mu * p_N >= |p_T|}
+            K^* = {p | 1 / mu * p_N >= |p_T|},
+            the set of all valid accelerations
+
+        Each contact is categorized into three zones:
+            top zone:       p_N >= mu * |p_T|
+            middle zone:    p_N < mu * |p_T| and mu * p_N + |p_T| > 0
+            bottom zone:    mu * p_N + |p_T| <= 0
+
+        For each contact point, the cost is:
+            top zone:       0
+            middle zone:    0.5 * (N - mu * T)^2
+            bottom zone:    0.5 * (N^2 + T1^2 + T2^2)
         """
-        normal, tangent = get_normal_tangent(jar)
-        ind_top, ind_bottom, ind_middle = compute_zones(normal, tangent)
-        weight, middle_weight = get_contact_weights(jar)
-
         cost = 0
-        # Cost for bottom zone is sum of squares
-        for ib in ind_bottom:
-            N, T1, T2 = jar[3 * ib], jar[3 * ib + 1], jar[3 * ib + 2]
-            WN, WT1, WT2 = weight[3 * ib], weight[3 * ib + 1], weight[3 * ib + 2]
-            cost += 0.5 * (WN * N ** 2 + WT1 * T1 ** 2 + WT2 * T2 ** 2)
 
-        # Cost for middle zone is quadratic in (N - mu * T)
-        for im in ind_middle:
-            N, T1, T2 = jar[3 * im], jar[3 * im + 1], jar[3 * im + 2]
-            T = np.sqrt(T1 ** 2 + T2 ** 2)
-            cost += 0.5 * middle_weight[im] * (N - mu[im] * T) ** 2
+        for i in range(len(jar) // 3):
+            N, T1, T2, T, mu, mid_weight = get_norm_tangent_weights(jar, mus, i)
+            # Top zone
+            if N >= mu * T:
+                pass
+            # Bottom zone
+            elif mu * N + T <= 0:
+                cost += 0.5 * (N ** 2 + T1 ** 2 + T2 ** 2)
+            # Middle zone
+            else:
+                cost += 0.5 * mid_weight * (N - mu * T) ** 2
         return cost
 
-    def ds(jar):
-        normal, tangent = get_normal_tangent(jar)
-        ind_top, ind_bottom, ind_middle = compute_zones(normal, tangent)
-        weight, middle_weight = get_contact_weights(jar)
+    def get_norm_tangent_weights(jar, ms, idx):
+        N, T1, T2 = jar[3 * idx], jar[3 * idx + 1], jar[3 * idx + 2]
+        T, mu = np.sqrt(T1 ** 2 + T2 ** 2), ms[idx]
+        mid_weight = 1 / (1 + mu ** 2)
+        return N, T1, T2, T, mu, mid_weight
 
+    def ds(jar):
         out = np.zeros_like(jar)
 
-        # Bottom zone: Cost is (1/2) * D * (N^2 + T_1^2 + T_2^2)
-        #   d/dN (cost) = D * N
-        #   d/dT_i (cost) = D * T_i
-        for ib in ind_bottom:
-            N, T1, T2 = jar[3 * ib], jar[3 * ib + 1], jar[3 * ib + 2]
-            WN, WT1, WT2 = weight[3 * ib], weight[3 * ib + 1], weight[3 * ib + 2]
-            out[3 * ib] = WN * N
-            out[3 * ib + 1] = WT1 * T1
-            out[3 * ib + 2] = WT2 * T2
-
-        # Middle zone: Cost is (1/2) * D_middle * (N - mu * T)^2
-        #  d/dN (cost) = D_middle * (N - mu * T)
-        #  d/dT_i (cost = -D_middle * mu*T_i * (N - mu * T) / T
-        for im in ind_middle:
-            N, T1, T2 = jar[3 * im], jar[3 * im + 1], jar[3 * im + 2]
-            T = np.sqrt(T1 ** 2 + T2 ** 2)
-            W = middle_weight[im]
-            tmp = W * (N - mu[im] * T)
-            out[3 * im] = tmp
-            out[3 * im + 1] = -tmp * mu[im] * T1 / T
-            out[3 * im + 2] = -tmp * mu[im] * T2 / T
-
+        for i in range(len(jar) // 3):
+            N, T1, T2, T, mu, mid_weight = get_norm_tangent_weights(jar, mus, i)
+            if N >= mu * T:
+                pass
+            elif mu * N + T <= 0:
+                out[3 * i] = N
+                out[3 * i + 1] = T1
+                out[3 * i + 2] = T2
+            else:
+                tmp = mid_weight * (N - mu * T)
+                out[3 * i] = tmp
+                out[3 * i + 1] = -tmp * mu * T1 / T
+                out[3 * i + 2] = -tmp * mu * T2 / T
         return out
 
     def add_hessian_entry(
@@ -184,49 +130,62 @@ def reduced_primal(M, a_free, v, J, mu, penetrations, h, result):
         rows[i], cols[i], data[i] = r, c, v
 
     def hs(jar):
-        normal, tangent = get_normal_tangent(jar)
-        ind_top, ind_bottom, ind_middle = compute_zones(normal, tangent)
-        weight, middle_weight = get_contact_weights(jar)
+        n_bottom, n_middle = 0, 0
+        for i in range(len(jar) // 3):
+            N, T1, T2, T, mu, mid_weight = get_norm_tangent_weights(jar, mus, i)
+            if N >= mu * T:
+                pass
+            elif mu * N + T <= 0:
+                n_bottom += 1
+            else:
+                n_middle += 1
 
         # Build sparse matrix the inexpensive way
-        n_values = 3 * ind_bottom.size + 9 * ind_middle.size
+        n_values = 3 * n_bottom + 9 * n_middle
         # These store the (row, column) indices and values of the Hessian
-        rows, cols = np.zeros(n_values, dtype=np.uint32), np.zeros(n_values, dtype=np.uint32)
+        rows, cols = np.zeros(n_values, dtype=np.uint32), np.zeros(n_values,
+                                                                   dtype=np.uint32)
         data = np.zeros(n_values, dtype=np.float64)
         idx = 0  # How many temporary values we have stored
 
-        # Bottom zone: Cost is (1/2) * D * (N^2 + T_1^2 + T_2^2)
-        #   Mixed derivatives are zero
-        for ib in ind_bottom:
-            N_idx, T1_idx, T2_idx = 3 * ib, 3 * ib + 1, 3 * ib + 2
-            add_hessian_entry(rows, cols, data, idx, N_idx, N_idx, weight[N_idx])
-            add_hessian_entry(rows, cols, data, idx + 1, T1_idx, T1_idx, weight[T1_idx])
-            add_hessian_entry(rows, cols, data, idx + 2, T2_idx, T2_idx, weight[T2_idx])
-            idx += 3
+        for i in range(len(jar) // 3):
+            N, T1, T2, T, mu, mid_weight = get_norm_tangent_weights(jar, mus, i)
+            # Top zone
+            if N >= mu * T:
+                pass
+            elif mu * N + T <= 0:
+                N_idx, T1_idx, T2_idx = 3 * i, 3 * i + 1, 3 * i + 2
+                add_hessian_entry(rows, cols, data, idx, N_idx, N_idx, 1)
+                add_hessian_entry(rows, cols, data, idx + 1, T1_idx, T1_idx, 1)
+                add_hessian_entry(rows, cols, data, idx + 2, T2_idx, T2_idx, 1)
+                idx += 3
+            else:
+                W = mid_weight
+                N_idx, T1_idx, T2_idx = 3 * i, 3 * i + 1, 3 * i + 2
+                # Respect to N
+                add_hessian_entry(rows, cols, data, idx, N_idx, N_idx, W)
+                add_hessian_entry(rows, cols, data, idx + 1, N_idx, T1_idx,
+                                  -W * mu * T1 / T)
+                add_hessian_entry(rows, cols, data, idx + 2, N_idx, T2_idx,
+                                  -W * mu * T2 / T)
+                # Respect to T1
+                add_hessian_entry(rows, cols, data, idx + 3, T1_idx, N_idx,
+                                  -W * mu * T1 / T)
+                add_hessian_entry(rows, cols, data, idx + 4, T1_idx, T1_idx,
+                                  W * mu * (mu - ((N * T2 ** 2) / T ** 3)))
+                add_hessian_entry(rows, cols, data, idx + 5, T1_idx, T2_idx,
+                                  W * mu * (N * T1 * T2) / T ** 3)
+                # Respect to T2
+                add_hessian_entry(rows, cols, data, idx + 6, T2_idx, N_idx,
+                                  -W * mu * T2 / T)
+                add_hessian_entry(rows, cols, data, idx + 7, T2_idx, T1_idx,
+                                  W * mu * (N * T1 * T2) / T ** 3)
+                add_hessian_entry(rows, cols, data, idx + 8, T2_idx, T2_idx,
+                                  W * mu * (mu - ((N * T1 ** 2) / T ** 3)))
+                idx += 9
 
-        # Middle zone: Cost is (1/2) * D_middle * (N - mu * T)^2
-        for im in ind_middle:
-            N_idx, T1_idx, T2_idx = 3 * im, 3 * im + 1, 3 * im + 2
-            N, T1, T2 = jar[N_idx], jar[T1_idx], jar[T2_idx]
-            T = np.sqrt(T1 ** 2 + T2 ** 2)
-            W = middle_weight[im]
-            # Respect to N
-            add_hessian_entry(rows, cols, data, idx, N_idx, N_idx, W)
-            add_hessian_entry(rows, cols, data, idx + 1, N_idx, T1_idx, -W * mu[im] * T1 / T)
-            add_hessian_entry(rows, cols, data, idx + 2, N_idx, T2_idx, -W * mu[im] * T2 / T)
-            # Respect to T1
-            add_hessian_entry(rows, cols, data, idx + 3, T1_idx, N_idx, -W * mu[im] * T1 / T)
-            add_hessian_entry(rows, cols, data, idx + 4, T1_idx, T1_idx,
-                              W * mu[im] * (mu[im] - ((N * T2 ** 2) / T ** 3)))
-            add_hessian_entry(rows, cols, data, idx + 5, T1_idx, T2_idx, W * mu[im] * (N * T1 * T2) / T ** 3)
-            # Respect to T2
-            add_hessian_entry(rows, cols, data, idx + 6, T2_idx, N_idx, -W * mu[im] * T2 / T)
-            add_hessian_entry(rows, cols, data, idx + 7, T2_idx, T1_idx, W * mu[im] * (N * T1 * T2) / T ** 3)
-            add_hessian_entry(rows, cols, data, idx + 8, T2_idx, T2_idx,
-                              W * mu[im] * (mu[im] - ((N * T1 ** 2) / T ** 3)))
-            idx += 9
-
-        hess = sp.csc_matrix((data, (rows, cols)), shape=(jar.shape[0], jar.shape[0]))
+        hess = sp.csc_matrix((data, (rows, cols)),
+                             shape=(jar.shape[0], jar.shape[0]))
         return hess
 
     def obj(x):
@@ -241,17 +200,18 @@ def reduced_primal(M, a_free, v, J, mu, penetrations, h, result):
         # return HMatrix(A=M, E=J.T @ hs(J @ x - a_ref) @ J)
         return M.M + J.T @ hs(J @ x - a_ref) @ J
 
-
     # Solve for x (\dot v)
     if num_contacts_pts == 0:
         result[:] = a_free
     else:
         # Tolerance of 1e-5 is around the lowest we can get with 32bit floats
         #   and given the condition number of M
-        a_solve = newton(fun=obj, df=d_obj, hess=h_obj, x0=a_free, tol=1e-5)
+        # a_solve = newton(df=d_obj, hess=h_obj, x0=a_free, tol=1e-5, M=M,
+        #                  a_free=a_free, J=J, a_ref=a_ref, mus=mus)
 
         # Slower convergence but easier to implement
-        # a_solve = nonlinear_cg(fun=obj, df=d_obj, x0=a_free, tol=1e-5, M=M)
+        a_solve = nonlinear_cg(df=d_obj, x0=a_free, tol=1e-5,
+                               M=M, a_free=a_free, J=J, a_ref=a_ref, mus=mus)
         result[:] = a_solve
 
     return

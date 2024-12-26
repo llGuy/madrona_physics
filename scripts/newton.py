@@ -5,6 +5,8 @@ import numpy as np
 from scipy.optimize._linesearch import line_search_wolfe1
 from scipy.sparse.linalg import spsolve
 
+from scripts.conjugate_gradient import exact_line_search
+
 
 def inner_newton_cg(z0, g, r, d, H, tol, cg_max_iter):
     """
@@ -47,7 +49,7 @@ def inner_newton_cg(z0, g, r, d, H, tol, cg_max_iter):
 
 
 
-def newton(fun, df, hess, x0, tol):
+def newton(df, hess, x0, tol, M, a_free, J, a_ref, mus):
     """
     Minimizes [fun] using Newton's method.
     The search direction [hess]^{-1}[df] is computed using the conjugate gradient method.
@@ -63,12 +65,13 @@ def newton(fun, df, hess, x0, tol):
         H = hess(x)
         p = spsolve(H, -g)
 
-        # Line search
-        alpha = line_search_wolfe1(fun, df, x, p, g)[0]
-        if alpha is None:
-            print("Is descent direction?", np.dot(g, p) < 0)
-            print("Line search failed")  # why :(
-            return x
+        # Exact line search
+        alpha = exact_line_search(x, p, tol, avg_tol, M, a_free, J, a_ref, mus)
+        # alpha = line_search_wolfe1(fun, df, x, p, g)[0]
+        # if alpha is None:
+        #     print("Is descent direction?", np.dot(g, p) < 0)
+        #     print("Line search failed")  # why :(
+        #     return x
 
         update = alpha * p
         x += update
