@@ -2,51 +2,9 @@
 Newton related solvers
 """
 import numpy as np
-from scipy.optimize._linesearch import line_search_wolfe1
 from scipy.sparse.linalg import spsolve
 
-from scripts.conjugate_gradient import exact_line_search
-
-
-def inner_newton_cg(z0, g, r, d, H, tol, cg_max_iter):
-    """
-    Currently unused (but may be helpful for larger systems)
-    Inner loop for Newton-CG, solves for the search direction p in the linear system
-        Hp = -g, where H is the Hessian and g is the gradient.
-    """
-    z = z0.copy()
-    float64eps = np.finfo(np.float64).eps
-
-    rs_old = np.dot(r, r)
-    for j in range(cg_max_iter):
-        # Check for convergence
-        if np.linalg.norm(r) < tol:
-            return z, 0
-
-        # Curvature is small
-        dBd = np.dot(d, (H.dot(d)))
-        if 0 <= dBd <= 3 * float64eps:
-            return z, 0
-        # z is both a descent direction and a direction of non-positive curvature
-        elif dBd <= 0:
-            if j == 0:
-                return -g, 0
-            else:
-                return z, 0
-
-        # Continue iterating
-        alpha = rs_old / dBd
-        r += alpha * (H.dot(d))
-        z += alpha * d
-
-        rs_new = np.dot(r, r)
-        beta = rs_new / rs_old
-        d = -r + beta * d
-
-        rs_old = rs_new
-    else:
-        return z0, 1
-
+from line_search import exact_line_search
 
 
 def newton(df, hess, x0, tol, M, a_free, J, a_ref, mus):
@@ -67,12 +25,6 @@ def newton(df, hess, x0, tol, M, a_free, J, a_ref, mus):
 
         # Exact line search
         alpha = exact_line_search(x, p, tol, avg_tol, M, a_free, J, a_ref, mus)
-        # alpha = line_search_wolfe1(fun, df, x, p, g)[0]
-        # if alpha is None:
-        #     print("Is descent direction?", np.dot(g, p) < 0)
-        #     print("Line search failed")  # why :(
-        #     return x
-
         update = alpha * p
         x += update
 
