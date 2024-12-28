@@ -278,6 +278,7 @@ struct Manager::Impl {
 
     inline virtual ~Impl() {}
 
+    virtual void init() = 0;
     virtual void run() = 0;
 
     static inline Impl * init(const Config &cfg);
@@ -286,21 +287,29 @@ struct Manager::Impl {
 #ifdef MADRONA_CUDA_SUPPORT
 struct Manager::CUDAImpl final : Manager::Impl {
     MWCudaExecutor gpuExec;
+    MWCudaLaunchGraph initGraph;
     MWCudaLaunchGraph stepGraph;
 
     inline CUDAImpl(const Manager::Config &mgr_cfg,
                    Optional<RenderGPUState> &&render_gpu_state,
                    Optional<render::RenderManager> &&render_mgr,
                    MWCudaExecutor &&gpu_exec,
+                   MWCudaLaunchGraph &&init_graph,
                    MWCudaLaunchGraph &&step_graph)
         : Impl(mgr_cfg,
                std::move(render_gpu_state), std::move(render_mgr),
                nullptr),
           gpuExec(std::move(gpu_exec)),
+          initGraph(std::move(init_graph)),
           stepGraph(std::move(step_graph))
     {}
 
     inline virtual ~CUDAImpl() final {}
+
+    inline virtual void init()
+    {
+        gpuExec.run(initGraph);
+    }
 
     inline virtual void run()
     {
@@ -331,9 +340,14 @@ struct Manager::CPUImpl final : Manager::Impl {
 
     inline virtual ~CPUImpl() final {}
 
+    inline virtual void init()
+    {
+        cpuExec.runTaskGraph(TaskGraphID::Init, nullptr);
+    }
+
     inline virtual void run()
     {
-        cpuExec.run(cvxSolve);
+        cpuExec.runTaskGraph(TaskGraphID::Step, cvxSolve);
     }
 };
 
@@ -393,12 +407,15 @@ Manager::Impl * Manager::Impl::init(
 
         MWCudaLaunchGraph step_graph = gpu_exec.buildLaunchGraph(
                 TaskGraphID::Step);
+        MWCudaLaunchGraph init_graph = gpu_exec.buildLaunchGraph(
+                TaskGraphID::Init);
 
         return new CUDAImpl {
             mgr_cfg,
             std::move(render_gpu_state),
             std::move(render_mgr),
             std::move(gpu_exec),
+            std::move(init_graph),
             std::move(step_graph),
         };
 #else
@@ -456,6 +473,7 @@ Manager::Impl * Manager::Impl::init(
 Manager::Manager(const Config &cfg)
     : impl_(Impl::init(cfg))
 {
+    impl_->init();
     step();
 }
 

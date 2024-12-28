@@ -148,9 +148,18 @@ static void setupStepTasks(TaskGraphBuilder &builder,
 #endif
 }
 
+static void setupInitTasks(TaskGraphBuilder &builder,
+                           const Sim::Config &cfg)
+{
+    auto node = phys::PhysicsSystem::setupInitTasks(
+            builder, {}, physicsSolverSelector);
+    (void)node;
+}
+
 // Build the task graph
 void Sim::setupTasks(TaskGraphManager &taskgraph_mgr, const Config &cfg)
 {
+    setupInitTasks(taskgraph_mgr.init(TaskGraphID::Init), cfg);
     setupStepTasks(taskgraph_mgr.init(TaskGraphID::Step), cfg);
 }
 
@@ -257,9 +266,6 @@ void Sim::makePhysicsObjects(Engine &ctx,
                                  stickChild2,
                                  Vector3 { 0.f, 0.f, 16.f },
                                  Vector3 { 0.f, 0.f, 16.f });
-
-        // Once all the hierarchies are built, run initialization
-        cv::initializeHierarchies(ctx);
     }
 
     { // Make the plane
