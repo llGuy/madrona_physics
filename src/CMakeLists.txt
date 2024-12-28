@@ -57,6 +57,19 @@ target_compile_definitions(stick_mgr PRIVATE
     -DDATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/../data/"
 )
 
+add_executable(stick_headless headless.cpp)
+target_link_libraries(stick_headless 
+    PUBLIC
+    stick_mgr
+    PRIVATE
+    madrona_mw_core)
+if (TARGET madrona_cuda)
+    target_link_libraries(stick_headless PRIVATE madrona_cuda)
+endif()
+target_compile_definitions(stick_headless PRIVATE
+    -DDATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/../data/"
+)
+
 if (TARGET madrona_viz)
     add_executable(stick_viewer viewer.cpp)
     target_link_libraries(stick_viewer 

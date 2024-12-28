@@ -38,7 +38,7 @@ int main(int argc, char *argv[])
 
     WindowManager wm {};
     WindowHandle window = wm.makeWindow("Stick Viewer", 
-            2730, 1536);
+            1000, 1000);
 
     render::GPUHandle render_gpu = wm.initGPU(0, { window.get() });
 

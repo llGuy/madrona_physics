@@ -4,8 +4,9 @@
 #include <madrona/custom_context.hpp>
 #include <madrona/rand.hpp>
 #include <madrona/physics.hpp>
-#include <madrona/cvphysics.hpp>
+// #include <madrona/cvphysics.hpp>
 #include <madrona/render/ecs.hpp>
+#include <madrona/memory_range.hpp>
 
 namespace madPhysics {
 
@@ -50,6 +51,14 @@ struct DynamicObject : public madrona::Archetype<
     madrona::render::Renderable
 > {};
 
+struct TestSingleton {
+    int v;
+};
+
+struct TestEntity : public madrona::Archetype<
+    Position
+> {};
+
 // The Sim class encapsulates the per-world state of the simulation.
 // Sim is always available by calling ctx.data() given a reference
 // to the Engine / Context object that is passed to each ECS system.
@@ -65,9 +74,8 @@ struct Sim : public madrona::WorldBase {
         madrona::phys::ObjectManager *rigidBodyObjMgr;
         const madrona::render::RenderECSBridge *renderBridge;
 
-#ifndef MADRONA_GPU_MODE
-        madrona::phys::CVXSolve *cvxSolve;
-#endif
+        // madrona::phys::CVXSolve *cvxSolve;
+        void *cvxSolve;
     };
 
     struct WorldInit {};
@@ -82,14 +90,20 @@ struct Sim : public madrona::WorldBase {
         const Config &cfg,
         const WorldInit &);
 
+    void makePhysicsObjects(Engine &ctx, const Config &cfg);
+    void makeRangeMapTest(Engine &ctx);
+
     madrona::RandKey initRandKey;
     madrona::RNG rng;
 
     Entity stickBodyGrp;
     Entity stickRoot;
     Entity stickChild;
-
     Entity plane;
+
+    uint32_t freed;
+
+    madrona::MemoryRange testRM;
 };
 
 class Engine : public ::madrona::CustomContext<Engine, Sim> {

@@ -1,3 +1,4 @@
+#if 0
 #include "mgr.hpp"
 
 #include <signal.h>
@@ -225,7 +226,7 @@ NB_MODULE(madrona_stick, m) {
                             int64_t num_worlds) {
             WindowManager wm {};
             WindowHandle window = wm.makeWindow("Stick Viewer",
-                    2730, 1536);
+                    1000, 1000);
             render::GPUHandle render_gpu = wm.initGPU(0, { window.get() });
 
             CVXSolveData *solve_data = new CVXSolveData {
@@ -267,3 +268,4 @@ NB_MODULE(madrona_stick, m) {
 }
     
 }
+#endif

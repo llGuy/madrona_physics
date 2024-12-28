@@ -25,19 +25,66 @@ namespace madPhysics {
 constexpr inline CountT numPhysicsSubsteps = 1;
 constexpr inline auto physicsSolverSelector = PhysicsSystem::Solver::Convex;
 
+// 32-byte range map unit
+struct RMUnit32 {
+    uint8_t data[32];
+};
+
+inline void testRM(Engine &ctx,
+                   TestSingleton &s)
+{
+    if (ctx.data().freed == 0) {
+        auto &testRM = ctx.data().testRM;
+
+        RMUnit32 *units = ctx.memoryRangePointer<RMUnit32>(testRM);
+        uint32_t *data = (uint32_t *)units;
+
+        assert(data[0] == 42 * (ctx.worldID().idx + 1));
+        assert(data[1] == 43 * (ctx.worldID().idx + 1));
+        assert(data[2] == 44 * (ctx.worldID().idx + 1));
+
+        if (s.v == 2) {
+            if (ctx.worldID().idx < 6) {
+                ctx.freeMemoryRange(ctx.data().testRM);
+                ctx.data().freed = 1;
+            }
+        }
+    }
+
+    if (s.v == 4 && ctx.data().freed == 1) {
+        if (ctx.worldID().idx < 4) {
+            auto &testRM = ctx.data().testRM = ctx.allocMemoryRange<RMUnit32>(3);
+
+            RMUnit32 *units = ctx.memoryRangePointer<RMUnit32>(ctx.data().testRM);
+            uint32_t *data = (uint32_t *)units;
+
+            data[0] = 42 * (ctx.worldID().idx + 1);
+            data[1] = 43 * (ctx.worldID().idx + 1);
+            data[2] = 44 * (ctx.worldID().idx + 1);
+
+            ctx.data().freed = 0;
+        }
+    }
+
+    s.v++;
+}
+
 // Register all the ECS components and archetypes that will be
 // used in the simulation
 void Sim::registerTypes(ECSRegistry &registry, const Config &cfg)
 {
     base::registerTypes(registry);
 
-    PhysicsSystem::registerTypes(registry, physicsSolverSelector);
+    // PhysicsSystem::registerTypes(registry, physicsSolverSelector);
     RenderingSystem::registerTypes(registry, cfg.renderBridge);
 
-    registry.registerArchetype<DynamicObject>();
-}
+    // registry.registerArchetype<DynamicObject>();
+    registry.registerArchetype<TestEntity>();
 
-#define DYNAMIC_MOVEMENT
+    registry.registerMemoryRangeElement<RMUnit32>();
+
+    registry.registerSingleton<TestSingleton>();
+}
 
 #ifdef MADRONA_GPU_MODE
 template <typename ArchetypeT>
@@ -52,6 +99,19 @@ TaskGraph::NodeID queueSortByWorld(TaskGraph::Builder &builder,
 
     return post_sort_reset_tmp;
 }
+
+template <typename RangeMapUnitT>
+TaskGraph::NodeID queueSortRangeMap(TaskGraph::Builder &builder,
+                                    Span<const TaskGraph::NodeID> deps)
+{
+    auto sort_sys =
+        builder.addToGraph<SortMemoryRangeNode<RMUnit32>>(deps);
+    auto post_sort_reset_tmp =
+        builder.addToGraph<ResetTmpAllocNode>({sort_sys});
+
+    return post_sort_reset_tmp;
+}
+
 #endif
 
 static void setupStepTasks(TaskGraphBuilder &builder, 
@@ -59,7 +119,7 @@ static void setupStepTasks(TaskGraphBuilder &builder,
 {
     (void)cfg;
 
-#if 1
+#if 0
     auto broadphase_setup_sys = phys::PhysicsSystem::setupBroadphaseTasks(
             builder, {});
 
@@ -70,11 +130,18 @@ static void setupStepTasks(TaskGraphBuilder &builder,
         builder, {substep_sys});
 #endif
 
+    auto test_sys = builder.addToGraph<ParallelForNode<Engine,
+        testRM,
+            TestSingleton
+       >>({});
+
     // For now the step does nothing but just setup the rendering tasks
     // for the visualizer.
-    auto render_sys = RenderingSystem::setupTasks(builder, {physics_cleanup});
+    // auto render_sys = RenderingSystem::setupTasks(builder, {test_sys});
 
-    (void)render_sys;
+#ifdef MADRONA_GPU_MODE
+    queueSortRangeMap<RMUnit32>(builder, {test_sys});
+#endif
 }
 
 // Build the task graph
@@ -114,23 +181,16 @@ static Entity makeDynObject(Engine &ctx,
     return e;
 }
 
-Sim::Sim(Engine &ctx,
-         const Config &cfg,
-         const WorldInit &)
-    : WorldBase(ctx)
+void Sim::makePhysicsObjects(Engine &ctx,
+                             const Config &cfg)
 {
-    ctx.data().initRandKey = cfg.initRandKey;
-    ctx.data().rng = RNG(rand::split_i(ctx.data().initRandKey,
-        0, (uint32_t)ctx.worldID().idx));
-
     PhysicsSystem::init(ctx, cfg.rigidBodyObjMgr,
                         consts::deltaT, 1,
                         -9.8f * math::up, 100,
                         physicsSolverSelector,
-                        cfg.cvxSolve);
+                        (CVXSolve *)cfg.cvxSolve);
     RenderingSystem::init(ctx, cfg.renderBridge);
 
-#if 1
     for (int i = 0; i < 3; ++i) {
         Entity grp = cv::makeCVBodyGroup(ctx);
         Entity e = makeDynObject(ctx,
@@ -142,7 +202,6 @@ Sim::Sim(Engine &ctx,
                           6);
         cv::setCVGroupRoot(ctx, grp, e);
     }
-#endif
 
     { // Make the articulated sticks
         stickBodyGrp = cv::makeCVBodyGroup(ctx);
@@ -196,7 +255,7 @@ Sim::Sim(Engine &ctx,
                                  Vector3 { 0.f, 0.f, 16.f });
 
         // Once all the hierarchies are built, run initialization
-        cv::initializeHierarchies(ctx);
+        // cv::initializeHierarchies(ctx);
     }
 
     { // Make the plane
@@ -208,6 +267,40 @@ Sim::Sim(Engine &ctx,
                               SimObject::Plane,
                               0);
     }
+}
+
+void Sim::makeRangeMapTest(Engine &ctx)
+{
+    testRM = ctx.allocMemoryRange<RMUnit32>(3);
+
+    RMUnit32 *units = ctx.memoryRangePointer<RMUnit32>(testRM);
+    uint32_t *data = (uint32_t *)units;
+
+    data[0] = 42 * (ctx.worldID().idx + 1);
+    data[1] = 43 * (ctx.worldID().idx + 1);
+    data[2] = 44 * (ctx.worldID().idx + 1);
+}
+
+Sim::Sim(Engine &ctx,
+         const Config &cfg,
+         const WorldInit &)
+    : WorldBase(ctx)
+{
+    ctx.data().initRandKey = cfg.initRandKey;
+    ctx.data().rng = RNG(rand::split_i(ctx.data().initRandKey,
+        0, (uint32_t)ctx.worldID().idx));
+
+    ctx.singleton<TestSingleton>().v = 0;
+
+    ctx.data().freed = 0;
+
+#if 0
+    makePhysicsObjects(ctx, cfg);
+#else
+    makeRangeMapTest(ctx);
+#endif
+
+    Entity test = ctx.makeEntity<TestEntity>();
 }
 
 // This declaration is needed for the GPU backend in order to generate the
