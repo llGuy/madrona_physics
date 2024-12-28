@@ -21,7 +21,7 @@ struct HeadlessWrapper {
 int main(int argc, char *argv[])
 {
     Manager *mgr = new Manager (Manager::Config {
-        .execMode = madrona::ExecMode::CUDA,
+        .execMode = madrona::ExecMode::CPU,
         .gpuID = 0,
         .numWorlds = (uint32_t)128,
         .randSeed = 5

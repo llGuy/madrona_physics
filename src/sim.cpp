@@ -18,7 +18,7 @@ using namespace madrona::math;
 using namespace madrona::phys;
 
 namespace RenderingSystem = madrona::render::RenderingSystem;
-// namespace PhysicsSystem = madrona::phys::PhysicsSystem;
+namespace PhysicsSystem = madrona::phys::PhysicsSystem;
 
 namespace madPhysics {
 
@@ -75,10 +75,10 @@ void Sim::registerTypes(ECSRegistry &registry, const Config &cfg)
 {
     base::registerTypes(registry);
 
-    // PhysicsSystem::registerTypes(registry, physicsSolverSelector);
+    PhysicsSystem::registerTypes(registry, physicsSolverSelector);
     RenderingSystem::registerTypes(registry, cfg.renderBridge);
 
-    // registry.registerArchetype<DynamicObject>();
+    registry.registerArchetype<DynamicObject>();
     registry.registerArchetype<TestEntity>();
 
     registry.registerMemoryRangeElement<RMUnit32>();
@@ -119,7 +119,7 @@ static void setupStepTasks(TaskGraphBuilder &builder,
 {
     (void)cfg;
 
-#if 0
+#if 1
     auto broadphase_setup_sys = phys::PhysicsSystem::setupBroadphaseTasks(
             builder, {});
 
@@ -130,17 +130,21 @@ static void setupStepTasks(TaskGraphBuilder &builder,
         builder, {substep_sys});
 #endif
 
+#if 0
     auto test_sys = builder.addToGraph<ParallelForNode<Engine,
         testRM,
             TestSingleton
        >>({});
+#endif
 
     // For now the step does nothing but just setup the rendering tasks
     // for the visualizer.
-    // auto render_sys = RenderingSystem::setupTasks(builder, {test_sys});
+    auto render_sys = RenderingSystem::setupTasks(builder, {physics_cleanup});
 
+#if 0
 #ifdef MADRONA_GPU_MODE
     queueSortRangeMap<RMUnit32>(builder, {test_sys});
+#endif
 #endif
 }
 
@@ -255,7 +259,7 @@ void Sim::makePhysicsObjects(Engine &ctx,
                                  Vector3 { 0.f, 0.f, 16.f });
 
         // Once all the hierarchies are built, run initialization
-        // cv::initializeHierarchies(ctx);
+        cv::initializeHierarchies(ctx);
     }
 
     { // Make the plane
@@ -294,7 +298,7 @@ Sim::Sim(Engine &ctx,
 
     ctx.data().freed = 0;
 
-#if 0
+#if 1
     makePhysicsObjects(ctx, cfg);
 #else
     makeRangeMapTest(ctx);
