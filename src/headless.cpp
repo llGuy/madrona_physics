@@ -23,7 +23,7 @@ int main(int argc, char *argv[])
     Manager *mgr = new Manager (Manager::Config {
         .execMode = madrona::ExecMode::CUDA,
         .gpuID = 0,
-        .numWorlds = (uint32_t)128,
+        .numWorlds = (uint32_t)1,
         .randSeed = 5
     });
     
