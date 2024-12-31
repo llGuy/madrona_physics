@@ -205,7 +205,7 @@ void Sim::makePhysicsObjects(Engine &ctx,
     RenderingSystem::init(ctx, cfg.renderBridge);
 
     for (int i = 0; i < 3; ++i) {
-        Entity grp = cv::makeCVBodyGroup(ctx);
+        Entity grp = cv::makeCVBodyGroup(ctx, 1);
         Entity e = makeDynObject(ctx,
                           Vector3{ 20.f, 0.f, 60.0f + (float)i * 4.0f },
                           Quat::angleAxis(1.f, { 1.f, 1.f, 1.f }),
@@ -217,7 +217,7 @@ void Sim::makePhysicsObjects(Engine &ctx,
     }
 
     { // Make the articulated sticks
-        stickBodyGrp = cv::makeCVBodyGroup(ctx);
+        stickBodyGrp = cv::makeCVBodyGroup(ctx, 3);
 
 
 
