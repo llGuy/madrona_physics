@@ -139,7 +139,10 @@ static void setupStepTasks(TaskGraphBuilder &builder,
 
     // For now the step does nothing but just setup the rendering tasks
     // for the visualizer.
-    auto render_sys = RenderingSystem::setupTasks(builder, {physics_cleanup});
+    if (cfg.renderBridge) {
+        auto render_sys = RenderingSystem::setupTasks(
+                builder, {physics_cleanup});
+    }
 
 #if 0
 #ifdef MADRONA_GPU_MODE

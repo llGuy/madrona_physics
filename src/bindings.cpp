@@ -168,7 +168,7 @@ struct HeadlessWrapper {
     void run()
     {
         for (uint32_t i = 0; i < numSteps; ++i) {
-            printf("step: %u\n", i);
+            // printf("step: %u\n", i);
             mgr->step();
         }
     }
@@ -201,7 +201,8 @@ NB_MODULE(madrona_stick, m) {
                 .gpuID = 0,
                 .numWorlds = (uint32_t)num_worlds,
                 .randSeed = 5,
-                .cvxSolve = solve_fn
+                .cvxSolve = solve_fn,
+                .headlessMode = true
             });
 
             new (self) HeadlessWrapper {

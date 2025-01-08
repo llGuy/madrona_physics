@@ -19,7 +19,7 @@ int main(int argc, char *argv[])
     using namespace madPhysics;
 
     uint32_t num_worlds = 1;
-    madrona::ExecMode exec_mode = madrona::ExecMode::CPU;
+    madrona::ExecMode exec_mode = madrona::ExecMode::CUDA;
 
     if (argc < 3) {
         printf("./stick_viewer [cpu|cuda] [num_worlds]\n");
@@ -57,7 +57,7 @@ int main(int argc, char *argv[])
     // Create the viewer viewer
     viz::Viewer viewer(mgr.getRenderManager(), window.get(), {
         .numWorlds = num_worlds,
-        .simTickRate = 60,
+        .simTickRate = 10,
         .cameraMoveSpeed = camera_move_speed * 7.f,
         .cameraPosition = { 41.899895f, -57.452969f, 33.152081f },
         .cameraRotation = { 0.944346f, -0.054453f, -0.018675f, 0.323878f },

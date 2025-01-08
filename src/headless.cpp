@@ -12,7 +12,7 @@ struct HeadlessWrapper {
     void run()
     {
         for (uint32_t i = 0; i < numSteps; ++i) {
-            printf("step: %u\n", i);
+            // printf("step: %u\n", i);
             mgr->step();
         }
     }
@@ -29,7 +29,7 @@ int main(int argc, char *argv[])
     
     HeadlessWrapper wrapper = {
         .mgr = mgr,
-        .numSteps = 8,
+        .numSteps = 75,
     };
 
     wrapper.run();
