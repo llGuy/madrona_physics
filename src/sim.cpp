@@ -201,6 +201,39 @@ void Sim::makePhysicsObjects(Engine &ctx,
                              const Config &cfg)
 {
     PhysicsSystem::init(ctx, cfg.rigidBodyObjMgr,
+            consts::deltaT, 1,
+            -9.8f * math::up, 100,
+            physicsSolverSelector,
+            (CVXSolve *)cfg.cvxSolve);
+    RenderingSystem::init(ctx, cfg.renderBridge);
+
+    for (int j = 0; j < 3; ++j) {
+        for (int i = 0; i < 3; ++i) {
+            Entity grp = cv::makeCVBodyGroup(ctx, 1);
+            Entity e = makeDynObject(ctx,
+                              Vector3{ 20.f + (float)j * 8.f, 0.f, 60.0f + (float)i * 4.0f },
+                              Quat::angleAxis(
+                                  (float)ctx.worldID().idx * i, { 1.f, 1.f, 1.f }),
+                              Diag3x3{ 1.f, 1.f, 1.f },
+                              ResponseType::Dynamic,
+                              SimObject::Stick,
+                              6);
+            cv::setCVGroupRoot(ctx, grp, e);
+        }
+    }
+
+    { // Make the plane
+        plane = makeDynObject(ctx,
+                              Vector3{ 0.f, 0.f, 1.f },
+                              Quat::angleAxis(0.5f, { 0.f, 0.f, 1.f }),
+                              Diag3x3{ 0.01f, 0.01f, 0.01f },
+                              ResponseType::Static,
+                              SimObject::Plane,
+                              0);
+    }
+
+#if 0
+    PhysicsSystem::init(ctx, cfg.rigidBodyObjMgr,
                         consts::deltaT, 1,
                         -9.8f * math::up, 100,
                         physicsSolverSelector,
@@ -280,6 +313,7 @@ void Sim::makePhysicsObjects(Engine &ctx,
                               SimObject::Plane,
                               0);
     }
+#endif
 }
 
 void Sim::makeRangeMapTest(Engine &ctx)

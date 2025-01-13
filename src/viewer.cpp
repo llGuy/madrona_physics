@@ -38,7 +38,7 @@ int main(int argc, char *argv[])
 
     WindowManager wm {};
     WindowHandle window = wm.makeWindow("Stick Viewer", 
-            1000, 1000);
+            2000, 1000);
 
     render::GPUHandle render_gpu = wm.initGPU(0, { window.get() });
 
@@ -63,6 +63,8 @@ int main(int argc, char *argv[])
         .cameraRotation = { 0.944346f, -0.054453f, -0.018675f, 0.323878f },
     });
 
+    uint64_t step_iter = 0;
+
     // Main loop for the viewer viewer
     viewer.loop(
         [&mgr](CountT /* world_idx */, const Viewer::UserInput &/* input */) {
@@ -73,6 +75,8 @@ int main(int argc, char *argv[])
             // No input
         }, [&]() {
             mgr.step();
+            printf("step %llu!\n", step_iter);
+            step_iter++;
         }, [&]() {
             // No ImGui windows for now
         });
