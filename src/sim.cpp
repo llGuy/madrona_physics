@@ -214,6 +214,8 @@ void Sim::makePhysicsObjects(Engine &ctx,
                               Vector3{ 20.f + (float)j * 8.f, 0.f, 60.0f + (float)i * 4.0f },
                               Quat::angleAxis(
                                   (float)ctx.worldID().idx * i, { 1.f, 1.f, 1.f }),
+                              // Quat::angleAxis(
+                                  // 1.f, { 1.f, 1.f, 1.f }),
                               Diag3x3{ 1.f, 1.f, 1.f },
                               ResponseType::Dynamic,
                               SimObject::Stick,

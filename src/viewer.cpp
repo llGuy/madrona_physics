@@ -57,7 +57,7 @@ int main(int argc, char *argv[])
     // Create the viewer viewer
     viz::Viewer viewer(mgr.getRenderManager(), window.get(), {
         .numWorlds = num_worlds,
-        .simTickRate = 10,
+        .simTickRate = 60,
         .cameraMoveSpeed = camera_move_speed * 7.f,
         .cameraPosition = { 41.899895f, -57.452969f, 33.152081f },
         .cameraRotation = { 0.944346f, -0.054453f, -0.018675f, 0.323878f },
@@ -74,7 +74,15 @@ int main(int argc, char *argv[])
                const Viewer::UserInput & /* input */) {
             // No input
         }, [&]() {
+            auto start = std::chrono::system_clock::now();
+
             mgr.step();
+
+            auto end = std::chrono::system_clock::now();
+            std::chrono::duration<double> elapsed = end - start;
+            float fps = (double)1 * (double)num_worlds / elapsed.count();
+            printf("FPS %f\n", fps);
+
             printf("step %llu!\n", step_iter);
             step_iter++;
         }, [&]() {
