@@ -4,12 +4,12 @@ Exact line search method
 import numpy as np
 
 
-def exact_line_search(xk, pk, tol, avg_tol, M, a_free, J, a_ref, mus):
+def exact_line_search(xk, pk, tol, M, a_free, J, a_ref, mus):
     """
     Computes the alpha that minimizes phi(alpha) = f(xk + alpha * pk)
     """
     # Search vector too small
-    if np.linalg.norm(pk) < tol:
+    if np.linalg.norm(pk) < 1e-15:
         return 0
 
     # Pre-compute some values
@@ -93,10 +93,10 @@ def exact_line_search(xk, pk, tol, avg_tol, M, a_free, J, a_ref, mus):
     for i in range(ls_iters):
         _, d_alpha1, h_alpha1 = fdh_phi(alpha1)
         # gradient moves in the opposite direction as alpha1, start bracketing
-        if d_alpha1 * a_dir > -avg_tol:
+        if d_alpha1 * a_dir > -tol:
             break
         # Converged
-        if np.abs(d_alpha1) < avg_tol:
+        if np.abs(d_alpha1) < tol:
             return alpha1
 
         # Newton step
@@ -116,7 +116,7 @@ def exact_line_search(xk, pk, tol, avg_tol, M, a_free, J, a_ref, mus):
     for i in range(ls_iters):
         alpha_mid = 0.5 * (alpha_low + alpha_high)
         _, d_alpha_mid, _ = fdh_phi(alpha_mid)
-        if np.abs(d_alpha_mid) < avg_tol:
+        if np.abs(d_alpha_mid) < tol:
             return alpha_mid
 
         # Narrow the bracket

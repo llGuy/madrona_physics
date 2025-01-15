@@ -19,6 +19,7 @@ class MatrixWrapper:
 
 class MMatrix(MatrixWrapper):
     def __init__(self, M):
+        self.M_og = M
         self.M = csc_matrix(M)
         self.LU = splu(self.M)  # Eventually should be a Cholesky factorization
 
@@ -37,6 +38,9 @@ class MMatrix(MatrixWrapper):
 
     def materialize(self):
         return self.materialize_inverse()
+
+    def diag_sum(self):
+        return np.sum(np.diag(self.M_og))
 
 
 class AMatrix(MatrixWrapper):

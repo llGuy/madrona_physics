@@ -210,8 +210,10 @@ def reduced_primal(M, a_free, v, J, mus, penetrations, h, result):
         #                  a_free=a_free, J=J, a_ref=a_ref, mus=mus)
 
         # Slower convergence but easier to implement
-        a_solve = nonlinear_cg(df=d_obj, x0=a_free, tol=1e-5,
-                               M=M, a_free=a_free, J=J, a_ref=a_ref, mus=mus)
+        tol, ls_tol = 1e-8, 0.01
+        a_solve = nonlinear_cg(f=obj, df=d_obj, x0=a_free, tol=tol,
+                               ls_tol=ls_tol, M=M, a_free=a_free, J=J,
+                               a_ref=a_ref, mus=mus)
         result[:] = a_solve
 
     return
