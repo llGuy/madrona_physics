@@ -7,7 +7,7 @@ import numpy as np
 from line_search import exact_line_search
 
 
-def nonlinear_cg(f, df, x0, tol, ls_tol, M, a_free, J, a_ref, mus):
+def nonlinear_cg(f, df, x0, tol, ls_tol, M, a_free, J, a_ref, mus, precision):
     max_iter = len(x0)
     # Scale the tolerance by the diagonal sum of the mass matrix
     total_m = M.diag_sum()
@@ -27,7 +27,8 @@ def nonlinear_cg(f, df, x0, tol, ls_tol, M, a_free, J, a_ref, mus):
 
         # Exact line search
         line_search_tol = tol * ls_tol * np.linalg.norm(p) / scale
-        alpha = exact_line_search(x, p, line_search_tol, M, a_free, J, a_ref, mus)
+        alpha = exact_line_search(x, p, line_search_tol, M, a_free, J, a_ref,
+                                  mus, precision)
         if alpha == 0:
             break
         update = alpha * p

@@ -4,7 +4,7 @@ Exact line search method
 import numpy as np
 
 
-def exact_line_search(xk, pk, tol, M, a_free, J, a_ref, mus):
+def exact_line_search(xk, pk, tol, M, a_free, J, a_ref, mus, precision):
     """
     Computes the alpha that minimizes phi(alpha) = f(xk + alpha * pk)
     """
@@ -75,7 +75,7 @@ def exact_line_search(xk, pk, tol, M, a_free, J, a_ref, mus):
                 hess += mw * (d_tmp ** 2 + tmp * (-mu * d2Tp_da2))
         return fun, grad, hess
 
-    alpha = 0
+    alpha = np.array(0, dtype=precision)
     f_alpha, d_alpha, h_alpha = fdh_phi(alpha)
     alpha1 = alpha - d_alpha / h_alpha  # Newton step
     f_alpha1, _, _ = fdh_phi(alpha1)

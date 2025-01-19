@@ -12,7 +12,7 @@ np.set_printoptions(threshold=np.inf)
 np.set_printoptions(linewidth=np.inf)
 
 
-def get_aref(v, J, r, h):
+def get_aref(v, J, r, h, precision):
     """
     Computes the ``reference acceleration'' described by MuJoCo.
     The reference acceleration is based on Baumgarte stabilization
@@ -29,6 +29,7 @@ def get_aref(v, J, r, h):
     imp = d_min + imp_y * (d_max - d_min)
     imp = np.clip(imp, d_min, d_max)
     imp = np.where(imp_x > 1.0, d_max, imp)
+    imp = np.array(imp, dtype=precision)
 
     k = 1 / (d_max * d_max * time_const * time_const * damp_ratio * damp_ratio)
     b = 2 / (d_max * time_const)
@@ -45,23 +46,29 @@ def reduced_primal(M, a_free, v, J, mus, penetrations, h, result):
         to be in the constrained space. For contacts,
         this is the dual of the friction cone
     """
+    # Change the precision here
+    precision = np.float32
+
+    M = M.astype(precision)
+    a_free = a_free.astype(precision)
+    v = v.astype(precision)
+    J = J.astype(precision)
+    mus = mus.astype(precision)
+    penetrations = penetrations.astype(precision)
+
     # Convert J from column-major to row-major
     J = J.T
     num_contacts_pts = int(J.shape[0] / 3)
-
-    # Original matrices
-    M_og = M
-    J_og = J
 
     # Matrix wrappers
     M = MMatrix(M=M)
     J = sp.csc_matrix(J)
 
     # Compute reference acceleration
-    r = np.zeros(J.shape[0])
+    r = np.zeros(J.shape[0], dtype=precision)
     for i in range(num_contacts_pts):
         r[i * 3] = -penetrations[i]
-    a_ref = get_aref(v, J, r, h)
+    a_ref = get_aref(v, J, r, h, precision)
 
     # Define convex s and our objective
     def s(jar):
@@ -213,7 +220,7 @@ def reduced_primal(M, a_free, v, J, mus, penetrations, h, result):
         tol, ls_tol = 1e-8, 0.01
         a_solve = nonlinear_cg(f=obj, df=d_obj, x0=a_free, tol=tol,
                                ls_tol=ls_tol, M=M, a_free=a_free, J=J,
-                               a_ref=a_ref, mus=mus)
+                               a_ref=a_ref, mus=mus, precision=precision)
         result[:] = a_solve
 
     return
