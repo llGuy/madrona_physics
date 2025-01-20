@@ -150,6 +150,9 @@ struct AppWrapper {
                 mgr->step();
 
                 printf("step: %u\n", step_i);
+                if (step_i == 75) {
+                    // exit(0);
+                }
                 step_i++;
             }, [this]() {
                 // No ImGui windows for now
@@ -168,7 +171,7 @@ struct HeadlessWrapper {
     void run()
     {
         for (uint32_t i = 0; i < numSteps; ++i) {
-            // printf("step: %u\n", i);
+            printf("step: %u\n", i);
             mgr->step();
         }
     }
