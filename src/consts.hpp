@@ -5,7 +5,7 @@
 namespace madPhysics {
 
 namespace consts {
-inline constexpr float deltaT = 0.04f;
+inline constexpr float deltaT = 0.01f;
 }
 
 }

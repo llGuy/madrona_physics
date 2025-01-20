@@ -81,6 +81,9 @@ int main(int argc, char *argv[])
             auto end = std::chrono::system_clock::now();
             std::chrono::duration<double> elapsed = end - start;
             float fps = (double)1 * (double)num_worlds / elapsed.count();
+            // printf("FPS %f\n", fps);
+
+            // printf("step %llu!\n", step_iter);
 
             step_iter++;
         }, [&]() {
