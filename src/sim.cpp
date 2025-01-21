@@ -210,10 +210,14 @@ void Sim::makePhysicsObjects(Engine &ctx,
 
     for (int j = 0; j < 3; ++j) {
         for (int i = 0; i < 3; ++i) {
+            float random_angle = ctx.data().rng.sampleUniform() *
+                math::pi * 2.f;
+
             Entity grp = cv::makeCVBodyGroup(ctx, 1);
             Entity e = makeDynObject(ctx,
                               Vector3{ (float)j * 20.f, 0.f, 60.0f + (float)i * 10.0f + (float) j * 4.f },
-                              Quat::angleAxis((float)(ctx.worldID().idx + 1) * ((float)i + (float)j), { 0.f, 0.f, 1.f }) * 
+                              // Quat::angleAxis((float)(ctx.worldID().idx + 1) * ((float)i + (float)j), { 0.f, 0.f, 1.f }) * 
+                              Quat::angleAxis(random_angle, {0.f, 0.f, 1.f}) *
                               Quat::angleAxis(
                                   ///* (float)ctx.worldID().idx */ 8.f * (float)i,
                                   math::pi / 2.f,
