@@ -200,6 +200,7 @@ static Entity makeDynObject(Engine &ctx,
 void Sim::makePhysicsObjects(Engine &ctx,
                              const Config &cfg)
 {
+#if 1
     PhysicsSystem::init(ctx, cfg.rigidBodyObjMgr,
             consts::deltaT, 1,
             -9.8f * math::up, 100,
@@ -211,9 +212,12 @@ void Sim::makePhysicsObjects(Engine &ctx,
         for (int i = 0; i < 3; ++i) {
             Entity grp = cv::makeCVBodyGroup(ctx, 1);
             Entity e = makeDynObject(ctx,
-                              Vector3{ 20.f + (float)j * 8.f, 0.f, 60.0f + (float)i * 4.0f },
+                              Vector3{ (float)j * 20.f, 0.f, 60.0f + (float)i * 10.0f + (float) j * 4.f },
+                              Quat::angleAxis((float)(ctx.worldID().idx + 1) * ((float)i + (float)j), { 0.f, 0.f, 1.f }) * 
                               Quat::angleAxis(
-                                  /* (float)ctx.worldID().idx */ 8.f * (float)i, { 1.f, 1.f, 1.f }),
+                                  ///* (float)ctx.worldID().idx */ 8.f * (float)i,
+                                  math::pi / 2.f,
+                                  { 1.f, 0.f, 0.f }),
                               // Quat::angleAxis(
                                   // 1.f, { 1.f, 1.f, 1.f }),
                               Diag3x3{ 1.f, 1.f, 1.f },
@@ -228,11 +232,12 @@ void Sim::makePhysicsObjects(Engine &ctx,
         plane = makeDynObject(ctx,
                               Vector3{ 0.f, 0.f, 1.f },
                               Quat::angleAxis(0.5f, { 0.f, 0.f, 1.f }),
-                              Diag3x3{ 0.01f, 0.01f, 0.01f },
+                              Diag3x3{ 0.03f, 0.03f, 0.03f },
                               ResponseType::Static,
                               SimObject::Plane,
                               0);
     }
+#endif
 
 #if 0
     PhysicsSystem::init(ctx, cfg.rigidBodyObjMgr,
