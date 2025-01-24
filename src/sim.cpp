@@ -90,12 +90,74 @@ void Sim::setupTasks(TaskGraphManager &taskgraph_mgr, const Config &cfg)
     setupStepTasks(taskgraph_mgr.init(TaskGraphID::Step), cfg);
 }
 
+static void createRigidBody(Engine &ctx)
+{
+    Entity grp = cv::makeBodyGroup(ctx, 1);
+
+    Entity l0;
+
+    float stick_mass = PhysicsSystem::getObjectMass(
+            ctx, (int32_t)SimObject::Stick);
+    Diag3x3 stick_inertia = PhysicsSystem::getObjectInertia(
+            ctx, (int32_t)SimObject::Stick);
+    float stick_mus = PhysicsSystem::getObjectMuS(
+            ctx, (int32_t)SimObject::Stick);
+
+    { // Create the body
+        l0 = cv::makeBody(
+            ctx,
+            grp,
+            cv::BodyDesc {
+                .numDofs = 6,
+                .initialPos = Vector3 { 0.f, 0.f, 60.0f },
+                .initialRot = Quat::angleAxis(0.f, { 0.f, 0.f, 1.f }),
+                .responseType = phys::ResponseType::Dynamic,
+                .numCollisionObjs = 1,
+                .numVisualObjs = 1,
+                .mass = stick_mass,
+                .inertia = stick_inertia,
+                .muS = stick_mus,
+            });
+    }
+
+    { // Now, we need to create the collision / visual objects
+        cv::attachCollision(
+            ctx, grp, l0, 0,
+            cv::CollisionDesc {
+                .objID = (uint32_t)SimObject::Stick,
+                .offset = Vector3::all(0.f),
+                .rotation = Quat::id(),
+                .scale = Diag3x3::id(),
+            });
+        cv::attachVisual(
+            ctx, grp, l0, 0,
+            cv::VisualDesc {
+                .objID = (uint32_t)SimObject::Stick,
+                .offset = Vector3::all(0.f),
+                .rotation = Quat::id(),
+                .scale = Diag3x3::id(),
+            });
+    }
+
+    { // Now, we need to specify the relationship between these links
+        // Set the root
+        cv::setRoot(ctx, grp, l0);
+    }
+}
+
 static void createExampleBodyGroup(Engine &ctx)
 {
     // Example of creating an articulated rigid body
     Entity grp = cv::makeBodyGroup(ctx, 3);
 
     Entity l0, l1, l2;
+
+    float stick_mass = PhysicsSystem::getObjectMass(
+            ctx, (int32_t)SimObject::Stick);
+    Diag3x3 stick_inertia = PhysicsSystem::getObjectInertia(
+            ctx, (int32_t)SimObject::Stick);
+    float stick_mus = PhysicsSystem::getObjectMuS(
+            ctx, (int32_t)SimObject::Stick);
 
     { // First step is to create all the links
         l0 = cv::makeBody(
@@ -107,7 +169,10 @@ static void createExampleBodyGroup(Engine &ctx)
                 .initialRot = Quat::angleAxis(0.f, { 0.f, 0.f, 1.f }),
                 .responseType = phys::ResponseType::Dynamic,
                 .numCollisionObjs = 1,
-                .numVisualObjs = 1
+                .numVisualObjs = 1,
+                .mass = stick_mass,
+                .inertia = stick_inertia,
+                .muS = stick_mus,
             });
 
         l1 = cv::makeBody(
@@ -119,7 +184,10 @@ static void createExampleBodyGroup(Engine &ctx)
                 .initialRot = Quat::angleAxis(0.5f, { 2.f, 1.f, 1.f }),
                 .responseType = phys::ResponseType::Dynamic,
                 .numCollisionObjs = 1,
-                .numVisualObjs = 1
+                .numVisualObjs = 1,
+                .mass = stick_mass,
+                .inertia = stick_inertia,
+                .muS = stick_mus,
             });
 
         l2 = cv::makeBody(
@@ -131,7 +199,10 @@ static void createExampleBodyGroup(Engine &ctx)
                 .initialRot = Quat::angleAxis(0.5f, { 2.f, 1.f, 1.f }),
                 .responseType = phys::ResponseType::Dynamic,
                 .numCollisionObjs = 1,
-                .numVisualObjs = 1
+                .numVisualObjs = 1,
+                .mass = stick_mass,
+                .inertia = stick_inertia,
+                .muS = stick_mus,
             });
     }
 
@@ -208,6 +279,61 @@ static void createExampleBodyGroup(Engine &ctx)
     }
 }
 
+static void createFloorPlane(Engine &ctx)
+{
+    Entity grp = cv::makeBodyGroup(ctx, 1);
+
+    Entity l0;
+
+    float plane_mass = PhysicsSystem::getObjectMass(
+            ctx, (int32_t)SimObject::Plane);
+    Diag3x3 plane_inertia = PhysicsSystem::getObjectInertia(
+            ctx, (int32_t)SimObject::Plane);
+    float plane_mus = PhysicsSystem::getObjectMuS(
+            ctx, (int32_t)SimObject::Plane);
+
+    { // Create the body
+        l0 = cv::makeBody(
+            ctx,
+            grp,
+            cv::BodyDesc {
+                .numDofs = 0,
+                .initialPos = Vector3 { 0.f, 0.f, 1.f },
+                .initialRot = Quat::angleAxis(0.5f, { 0.f, 0.f, 1.f }),
+                .responseType = phys::ResponseType::Static,
+                .numCollisionObjs = 1,
+                .numVisualObjs = 1,
+                .mass = plane_mass,
+                .inertia = plane_inertia,
+                .muS = plane_mus,
+            });
+    }
+
+    { // Now, we need to create the collision / visual objects
+        cv::attachCollision(
+            ctx, grp, l0, 0,
+            cv::CollisionDesc {
+                .objID = (uint32_t)SimObject::Plane,
+                .offset = Vector3::all(0.f),
+                .rotation = Quat::id(),
+                .scale = Diag3x3 { 0.03f, 0.03f, 0.03f },
+            });
+        cv::attachVisual(
+            ctx, grp, l0, 0,
+            cv::VisualDesc {
+                .objID = (uint32_t)SimObject::Plane,
+                .offset = Vector3::all(0.f),
+                .rotation = Quat::id(),
+                .scale = Diag3x3 { 0.03f, 0.03f, 0.03f },
+            });
+    }
+
+    { // Now, we need to specify the relationship between these links
+        // Set the root
+        cv::setRoot(ctx, grp, l0);
+    }
+}
+
 void Sim::makePhysicsObjects(Engine &ctx,
                              const Config &cfg)
 {
@@ -217,7 +343,9 @@ void Sim::makePhysicsObjects(Engine &ctx,
             physicsSolverSelector,
             (CVXSolve *)cfg.cvxSolve);
 
+    // createRigidBody(ctx);
     createExampleBodyGroup(ctx);
+    createFloorPlane(ctx);
 }
 
 Sim::Sim(Engine &ctx,
