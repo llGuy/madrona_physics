@@ -90,7 +90,9 @@ void Sim::setupTasks(TaskGraphManager &taskgraph_mgr, const Config &cfg)
     setupStepTasks(taskgraph_mgr.init(TaskGraphID::Step), cfg);
 }
 
-static void createRigidBody(Engine &ctx)
+static void createStick(Engine &ctx,
+                        Vector3 position,
+                        Quat rotation)
 {
     Entity grp = cv::makeBodyGroup(ctx, 1);
 
@@ -109,8 +111,8 @@ static void createRigidBody(Engine &ctx)
             grp,
             cv::BodyDesc {
                 .numDofs = 6,
-                .initialPos = Vector3 { 0.f, 0.f, 60.0f },
-                .initialRot = Quat::angleAxis(0.f, { 0.f, 0.f, 1.f }),
+                .initialPos = position,
+                .initialRot = rotation,
                 .responseType = phys::ResponseType::Dynamic,
                 .numCollisionObjs = 1,
                 .numVisualObjs = 1,
@@ -334,6 +336,34 @@ static void createFloorPlane(Engine &ctx)
     }
 }
 
+static void makeExampleConfig0(Engine &ctx,
+                               const Sim::Config &cfg)
+{
+    for (int j = 0; j < 3; ++j) {
+        for (int i = 0; i < 3; ++i) {
+            float random_angle = ctx.data().rng.sampleUniform() *
+                math::pi * 2.f;
+
+            Vector3 pos = { 
+                (float)j * 20.f,
+                0.f,
+                60.0f + (float)i * 10.0f + (float) j * 4.f 
+            };
+
+
+            Quat rot = 
+                Quat::angleAxis(random_angle, {0.f, 0.f, 1.f}) *
+                Quat::angleAxis(
+                    math::pi / 2.f,
+                    { 1.f, 0.f, 0.f });
+
+            createStick(ctx, pos, rot);
+        }
+    }
+
+    createFloorPlane(ctx);
+}
+
 void Sim::makePhysicsObjects(Engine &ctx,
                              const Config &cfg)
 {
@@ -344,8 +374,9 @@ void Sim::makePhysicsObjects(Engine &ctx,
             (CVXSolve *)cfg.cvxSolve);
 
     // createRigidBody(ctx);
-    createExampleBodyGroup(ctx);
-    createFloorPlane(ctx);
+    // createExampleBodyGroup(ctx);
+
+    makeExampleConfig0(ctx, cfg);
 }
 
 Sim::Sim(Engine &ctx,
