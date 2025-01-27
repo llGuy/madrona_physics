@@ -110,7 +110,7 @@ static void createStick(Engine &ctx,
             ctx,
             grp,
             cv::BodyDesc {
-                .numDofs = 6,
+                .type = cv::DofType::FreeBody,
                 .initialPos = position,
                 .initialRot = rotation,
                 .responseType = phys::ResponseType::Dynamic,
@@ -166,7 +166,7 @@ static void createExampleBodyGroup(Engine &ctx)
             ctx,
             grp,
             cv::BodyDesc {
-                .numDofs = 6,
+                .type = cv::DofType::FreeBody,
                 .initialPos = Vector3 { 0.f, 0.f, 60.0f },
                 .initialRot = Quat::angleAxis(0.f, { 0.f, 0.f, 1.f }),
                 .responseType = phys::ResponseType::Dynamic,
@@ -181,7 +181,7 @@ static void createExampleBodyGroup(Engine &ctx)
             ctx,
             grp,
             cv::BodyDesc {
-                .numDofs = 3,
+                .type = cv::DofType::Ball,
                 .initialPos = Vector3 { 0.f, 0.f, 40.01f },
                 .initialRot = Quat::angleAxis(0.5f, { 2.f, 1.f, 1.f }),
                 .responseType = phys::ResponseType::Dynamic,
@@ -196,7 +196,7 @@ static void createExampleBodyGroup(Engine &ctx)
             ctx,
             grp,
             cv::BodyDesc {
-                .numDofs = 3,
+                .type = cv::DofType::Ball,
                 .initialPos = Vector3 { 0.f, 0.f, 40.01f },
                 .initialRot = Quat::angleAxis(0.5f, { 2.f, 1.f, 1.f }),
                 .responseType = phys::ResponseType::Dynamic,
@@ -299,7 +299,7 @@ static void createFloorPlane(Engine &ctx)
             ctx,
             grp,
             cv::BodyDesc {
-                .numDofs = 0,
+                .type = cv::DofType::FixedBody,
                 .initialPos = Vector3 { 0.f, 0.f, 1.f },
                 .initialRot = Quat::angleAxis(0.5f, { 0.f, 0.f, 1.f }),
                 .responseType = phys::ResponseType::Static,
@@ -360,8 +360,6 @@ static void makeExampleConfig0(Engine &ctx,
             createStick(ctx, pos, rot);
         }
     }
-
-    createFloorPlane(ctx);
 }
 
 void Sim::makePhysicsObjects(Engine &ctx,
@@ -374,9 +372,10 @@ void Sim::makePhysicsObjects(Engine &ctx,
             (CVXSolve *)cfg.cvxSolve);
 
     // createRigidBody(ctx);
-    // createExampleBodyGroup(ctx);
+    createExampleBodyGroup(ctx);
 
-    makeExampleConfig0(ctx, cfg);
+    // makeExampleConfig0(ctx, cfg);
+    createFloorPlane(ctx);
 }
 
 Sim::Sim(Engine &ctx,

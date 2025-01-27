@@ -22,11 +22,13 @@ struct CVXSolveData {
 float *cvxSolveCall(void *vdata,
                     uint32_t total_num_dofs,
                     uint32_t num_contact_pts,
+                    uint32_t num_equality_rows,
                     float h,
                     float *mass,
                     float *free_acc,
                     float *vel,
                     float *J_c,
+                    float *J_e,
                     float *mu,
                     float *penetrations)
 {
@@ -74,6 +76,15 @@ float *cvxSolveCall(void *vdata,
         nb::device::cpu::value
     );
 
+    Tensor J_e_tensor(
+        J_e,
+        { total_num_dofs, num_equality_rows },
+        {},
+        {},
+        nb::dtype<float>(),
+        nb::device::cpu::value
+    );
+
     Tensor mu_tensor(
         mu,
         { num_contact_pts },
@@ -107,7 +118,7 @@ float *cvxSolveCall(void *vdata,
     );
 
     data->call(m_tensor, free_acc_tensor, vel_tensor, J_tensor,
-        mu_tensor, pen_tensor, h, ret_tensor);
+        J_e_tensor, mu_tensor, pen_tensor, h, ret_tensor);
 
     return ret_data;
 }

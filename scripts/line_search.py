@@ -4,7 +4,7 @@ Exact line search method
 import numpy as np
 
 
-def exact_line_search(xk, pk, tol, M, a_free, J, a_ref, mus, precision):
+def exact_line_search(xk, pk, tol, M, a_free, a_e_ref, J, J_e, a_ref, mus, precision):
     """
     Computes the alpha that minimizes phi(alpha) = f(xk + alpha * pk)
     """
@@ -27,6 +27,12 @@ def exact_line_search(xk, pk, tol, M, a_free, J, a_ref, mus, precision):
     # J @ p
     Jp = J @ pk
 
+    print(f"J_e shape = {J_e.shape}; xk shape = {xk.shape}")
+    print(J_e @ xk)
+
+    Jex_aref = J_e @ xk - a_e_ref
+    Jep = J_e @ pk
+
     def fdh_phi(a):
         """
         Computes the function evaluation and the first and second derivatives
@@ -44,21 +50,25 @@ def exact_line_search(xk, pk, tol, M, a_free, J, a_ref, mus, precision):
                 3 * idx + 2]
             mu = mus[idx]
             mw = 1 / (1 + mu ** 2)
+
             # After search
             p0, p1, p2 = Jp[3 * idx], Jp[3 * idx + 1], Jp[3 * idx + 2]
             Np = N + a * p0
             T1p = T1 + a * p1
             T2p = T2 + a * p2
             Tp = np.sqrt(T1p ** 2 + T2p ** 2)
+
             # Top zone
             if Np >= mu * Tp:
                 pass
+
             # Bottom zone
             elif mu * Np + Tp <= 0:
                 p_sq = p0 ** 2 + p1 ** 2 + p2 ** 2
                 fun += Np ** 2 + Tp ** 2
                 grad += p0 * N + p1 * T1 + p2 * T2 + a * p_sq
                 hess += p_sq
+
             # Middle zone
             else:
                 # dN' / d alpha
@@ -73,6 +83,19 @@ def exact_line_search(xk, pk, tol, M, a_free, J, a_ref, mus, precision):
                 fun += mw * tmp ** 2
                 grad += mw * tmp * d_tmp
                 hess += mw * (d_tmp ** 2 + tmp * (-mu * d2Tp_da2))
+
+        for idx in range(len(Jex_aref)):
+            # Original
+            orig = Jex_aref[idx]
+            # After search
+            dj = Jp[idx]
+
+            np = orig + a * dj
+
+            fun += np ** 2
+            grad += orig * dj + a * (dj ** 2)
+            hess += dj ** 2
+
         return fun, grad, hess
 
     alpha = np.array(0, dtype=precision)

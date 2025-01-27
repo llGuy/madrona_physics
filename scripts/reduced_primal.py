@@ -5,8 +5,8 @@ import numpy as np
 import scipy.sparse as sp
 
 from matrix_wrappers import MMatrix
-from scripts.conjugate_gradient import nonlinear_cg
-from scripts.newton import newton
+from conjugate_gradient import nonlinear_cg
+from newton import newton
 
 np.set_printoptions(threshold=np.inf)
 np.set_printoptions(linewidth=np.inf)
@@ -38,7 +38,7 @@ def get_aref(v, J, r, h, precision):
     return aref
 
 
-def reduced_primal(M, a_free, v, J, mus, penetrations, h, result):
+def reduced_primal(M, a_free, v, J, J_e, mus, penetrations, h, result):
     """
     Solves the reduced primal problem:
         min \|x - M^{-1} C\|_M^2 + s(Jx - a_ref)
@@ -53,11 +53,15 @@ def reduced_primal(M, a_free, v, J, mus, penetrations, h, result):
     a_free = a_free.astype(precision)
     v = v.astype(precision)
     J = J.astype(precision)
+    J_e = J_e.astype(precision)
+
     mus = mus.astype(precision)
     penetrations = penetrations.astype(precision)
 
     # Convert J from column-major to row-major
     J = J.T
+    J_e = J_e.T
+
     num_contacts_pts = int(J.shape[0] / 3)
 
     # Matrix wrappers
@@ -68,7 +72,16 @@ def reduced_primal(M, a_free, v, J, mus, penetrations, h, result):
     r = np.zeros(J.shape[0], dtype=precision)
     for i in range(num_contacts_pts):
         r[i * 3] = -penetrations[i]
+
+    # Get a_ref for contacts
     a_ref = get_aref(v, J, r, h, precision)
+
+    # Get a_ref for equality constraint
+    r_e = np.zeros(J_e.shape[0], dtype=precision)
+    print(r_e)
+    print(J_e)
+    a_e_ref = get_aref(v, J_e, r_e, h, precision)
+    print(a_e_ref)
 
     # Define convex s and our objective
     def s(jar):
@@ -102,6 +115,14 @@ def reduced_primal(M, a_free, v, J, mus, penetrations, h, result):
                 cost += 0.5 * mid_weight * (N - mu * T) ** 2
         return cost
 
+    def s_equality(jar):
+        cost = 0
+
+        for i in range(len(jar)):
+            cost += 0.5 * jar[i] ** 2
+
+        return cost
+
     def get_norm_tangent_weights(jar, ms, idx):
         N, T1, T2 = jar[3 * idx], jar[3 * idx + 1], jar[3 * idx + 2]
         T, mu = np.sqrt(T1 ** 2 + T2 ** 2), ms[idx]
@@ -124,6 +145,12 @@ def reduced_primal(M, a_free, v, J, mus, penetrations, h, result):
                 out[3 * i] = tmp
                 out[3 * i + 1] = -tmp * mu * T1 / T
                 out[3 * i + 2] = -tmp * mu * T2 / T
+        return out
+
+    def ds_equality(jar_e):
+        out = np.zeros_like(jar_e)
+        for i in range(len(jar_e)):
+            out[i] = jar_e[i]
         return out
 
     def add_hessian_entry(
@@ -197,11 +224,11 @@ def reduced_primal(M, a_free, v, J, mus, penetrations, h, result):
 
     def obj(x):
         x_min_a_free = x - a_free
-        return 0.5 * x_min_a_free.T @ (M @ x_min_a_free) + s(J @ x - a_ref)
+        return 0.5 * x_min_a_free.T @ (M @ x_min_a_free) + s(J @ x - a_ref) + s_equality(J_e @ x - a_e_ref)
 
     def d_obj(x):
         x_min_a_free = x - a_free
-        return (M @ x_min_a_free) + J.T @ ds(J @ x - a_ref)
+        return (M @ x_min_a_free) + J.T @ ds(J @ x - a_ref) + J_e.T @ ds_equality(J_e @ x - a_e_ref)
 
     def h_obj(x):
         # return HMatrix(A=M, E=J.T @ hs(J @ x - a_ref) @ J)
@@ -219,8 +246,8 @@ def reduced_primal(M, a_free, v, J, mus, penetrations, h, result):
         # Slower convergence but easier to implement
         tol, ls_tol = 1e-8, 0.01
         a_solve = nonlinear_cg(f=obj, df=d_obj, x0=a_free, tol=tol,
-                               ls_tol=ls_tol, M=M, a_free=a_free, J=J,
-                               a_ref=a_ref, mus=mus, precision=precision)
+                               ls_tol=ls_tol, M=M, a_free=a_free, J=J, J_e=J_e,
+                               a_ref=a_ref, a_e_ref=a_e_ref, mus=mus, precision=precision)
         result[:] = a_solve
 
     return
