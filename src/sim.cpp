@@ -90,20 +90,21 @@ void Sim::setupTasks(TaskGraphManager &taskgraph_mgr, const Config &cfg)
     setupStepTasks(taskgraph_mgr.init(TaskGraphID::Step), cfg);
 }
 
-static void createStick(Engine &ctx,
-                        Vector3 position,
-                        Quat rotation)
+static void createObject(Engine &ctx,
+                         Vector3 position,
+                         Quat rotation,
+                         SimObject obj)
 {
     Entity grp = cv::makeBodyGroup(ctx, 1);
 
     Entity l0;
 
-    float stick_mass = PhysicsSystem::getObjectMass(
-            ctx, (int32_t)SimObject::Stick);
-    Diag3x3 stick_inertia = PhysicsSystem::getObjectInertia(
-            ctx, (int32_t)SimObject::Stick);
-    float stick_mus = PhysicsSystem::getObjectMuS(
-            ctx, (int32_t)SimObject::Stick);
+    float obj_mass = PhysicsSystem::getObjectMass(
+            ctx, (int32_t)obj);
+    Diag3x3 obj_inertia = PhysicsSystem::getObjectInertia(
+            ctx, (int32_t)obj);
+    float obj_mus = PhysicsSystem::getObjectMuS(
+            ctx, (int32_t)obj);
 
     { // Create the body
         l0 = cv::makeBody(
@@ -113,6 +114,92 @@ static void createStick(Engine &ctx,
                 .type = cv::DofType::FreeBody,
                 .initialPos = position,
                 .initialRot = rotation,
+                .responseType = phys::ResponseType::Dynamic,
+                .numCollisionObjs = 1,
+                .numVisualObjs = 1,
+                .mass = obj_mass,
+                .inertia = obj_inertia,
+                .muS = obj_mus,
+            });
+    }
+
+    { // Now, we need to create the collision / visual objects
+        cv::attachCollision(
+            ctx, grp, l0, 0,
+            cv::CollisionDesc {
+                .objID = (uint32_t)obj,
+                .offset = Vector3::all(0.f),
+                .rotation = Quat::id(),
+                .scale = Diag3x3::id(),
+            });
+        cv::attachVisual(
+            ctx, grp, l0, 0,
+            cv::VisualDesc {
+                .objID = (uint32_t)obj,
+                .offset = Vector3::all(0.f),
+                .rotation = Quat::id(),
+                .scale = Diag3x3::id(),
+            });
+    }
+
+    { // Now, we need to specify the relationship between these links
+        // Set the root
+        cv::setRoot(ctx, grp, l0);
+    }
+}
+
+static void createExampleSlider(Engine &ctx)
+{
+    // Example of creating an articulated rigid body
+    Entity grp = cv::makeBodyGroup(ctx, 3);
+
+    Entity l0, l1, l2;
+
+    float stick_mass = PhysicsSystem::getObjectMass(
+            ctx, (int32_t)SimObject::Stick);
+    Diag3x3 stick_inertia = PhysicsSystem::getObjectInertia(
+            ctx, (int32_t)SimObject::Stick);
+    float stick_mus = PhysicsSystem::getObjectMuS(
+            ctx, (int32_t)SimObject::Stick);
+
+    { // First step is to create all the links
+        l0 = cv::makeBody(
+            ctx,
+            grp,
+            cv::BodyDesc {
+                .type = cv::DofType::FreeBody,
+                .initialPos = Vector3 { 0.f, 0.f, 60.0f },
+                .initialRot = Quat::angleAxis(0.f, { 0.f, 0.f, 1.f }),
+                .responseType = phys::ResponseType::Dynamic,
+                .numCollisionObjs = 1,
+                .numVisualObjs = 1,
+                .mass = stick_mass,
+                .inertia = stick_inertia,
+                .muS = stick_mus,
+            });
+
+        l1 = cv::makeBody(
+            ctx,
+            grp,
+            cv::BodyDesc {
+                .type = cv::DofType::Slider,
+                .initialPos = Vector3 { 0.f, 0.f, 50.0f },
+                .initialRot = Quat::angleAxis(0.5f, { 0.f, 1.f, 0.f }),
+                .responseType = phys::ResponseType::Dynamic,
+                .numCollisionObjs = 0,
+                .numVisualObjs = 1,
+                .mass = 0.01f,
+                .inertia = { 1.f, 1.f, 1.f },
+                .muS = 1.f,
+            });
+
+        l2 = cv::makeBody(
+            ctx,
+            grp,
+            cv::BodyDesc {
+                .type = cv::DofType::Ball,
+                .initialPos = Vector3 { 40.1f, 0.f, 0.f },
+                .initialRot = Quat::angleAxis(math::pi / 2.f, { 1.f, 0.f, 0.f }),
                 .responseType = phys::ResponseType::Dynamic,
                 .numCollisionObjs = 1,
                 .numVisualObjs = 1,
@@ -139,12 +226,65 @@ static void createStick(Engine &ctx,
                 .rotation = Quat::id(),
                 .scale = Diag3x3::id(),
             });
+
+        cv::attachVisual(
+            ctx, grp, l1, 0,
+            cv::VisualDesc {
+                .objID = (uint32_t)SimObject::Sphere,
+                .offset = Vector3::all(0.f),
+                .rotation = Quat::id(),
+                .scale = { 0.5f, 0.5f, 0.5f },
+            });
+
+        cv::attachCollision(
+            ctx, grp, l2, 0,
+            cv::CollisionDesc {
+                .objID = (uint32_t)SimObject::Stick,
+                .offset = Vector3::all(0.f),
+                .rotation = Quat::id(),
+                .scale = Diag3x3::id(),
+            });
+        cv::attachVisual(
+            ctx, grp, l2, 0,
+            cv::VisualDesc {
+                .objID = (uint32_t)SimObject::Stick,
+                .offset = Vector3::all(0.f),
+                .rotation = Quat::id(),
+                .scale = Diag3x3::id(),
+            });
     }
 
     { // Now, we need to specify the relationship between these links
         // Set the root
         cv::setRoot(ctx, grp, l0);
+
+        cv::joinBodies(
+            ctx, grp, l0, l1,
+            cv::JointSlider {
+                .relPositionParent = Vector3 { 0.f, 0.f, 0.f },
+                .relPositionChild = Vector3 { 0.f, 0.f, 0.f },
+                .slideVector = Vector3 { 0.f, 0.f, 1.f },
+            });
+
+        cv::joinBodies(
+            ctx, grp, l1, l2,
+            cv::JointHinge {
+                .relPositionParent = Vector3 { 3.f, 0.f, 0.f },
+                .relPositionChild = Vector3 { 0.f, 0.f, 16.f },
+                .hingeAxis = Vector3 { 1.f, 0.f, 0.f },
+            });
     }
+
+#if 0
+    { // Attach some joint limits
+        cv::attachLimit(
+            ctx, grp, l1,
+            cv::SliderLimit {
+                .lower = -16.f,
+                .upper = 16.f
+            });
+    }
+#endif
 }
 
 static void createExampleBodyGroup(Engine &ctx)
@@ -375,7 +515,7 @@ static void makeExampleConfig0(Engine &ctx,
                     math::pi / 2.f,
                     { 1.f, 0.f, 0.f });
 
-            createStick(ctx, pos, rot);
+            createObject(ctx, pos, rot, SimObject::Stick);
         }
     }
 }
@@ -389,8 +529,8 @@ void Sim::makePhysicsObjects(Engine &ctx,
             physicsSolverSelector,
             (CVXSolve *)cfg.cvxSolve);
 
-    // createRigidBody(ctx);
-    createExampleBodyGroup(ctx);
+    // createExampleBodyGroup(ctx);
+    createExampleSlider(ctx);
 
     // makeExampleConfig0(ctx, cfg);
     createFloorPlane(ctx);
