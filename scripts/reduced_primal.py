@@ -38,7 +38,7 @@ def get_aref(v, J, r, h, precision):
     return aref
 
 
-def reduced_primal(M, a_free, v, J, J_e, mus, penetrations, h, result):
+def reduced_primal(M, a_free, v, J, J_e, mus, penetrations, eq_res, h, result):
     """
     Solves the reduced primal problem:
         min \|x - M^{-1} C\|_M^2 + s(Jx - a_ref)
@@ -77,11 +77,10 @@ def reduced_primal(M, a_free, v, J, J_e, mus, penetrations, h, result):
     a_ref = get_aref(v, J, r, h, precision)
 
     # Get a_ref for equality constraint
-    r_e = np.zeros(J_e.shape[0], dtype=precision)
-    print(r_e)
-    print(J_e)
+    #r_e = np.zeros(J_e.shape[0], dtype=precision)
+    r_e = eq_res
+    print(f"r_e = {r_e}")
     a_e_ref = get_aref(v, J_e, r_e, h, precision)
-    print(a_e_ref)
 
     # Define convex s and our objective
     def s(jar):
@@ -228,6 +227,8 @@ def reduced_primal(M, a_free, v, J, J_e, mus, penetrations, h, result):
 
     def d_obj(x):
         x_min_a_free = x - a_free
+        print(f"equality constraint contrib: {a_e_ref})")
+
         return (M @ x_min_a_free) + J.T @ ds(J @ x - a_ref) + J_e.T @ ds_equality(J_e @ x - a_e_ref)
 
     def h_obj(x):
@@ -235,7 +236,7 @@ def reduced_primal(M, a_free, v, J, J_e, mus, penetrations, h, result):
         return M.M + J.T @ hs(J @ x - a_ref) @ J
 
     # Solve for x (\dot v)
-    if num_contacts_pts == 0:
+    if num_contacts_pts == 0 and False:
         result[:] = a_free
     else:
         # Tolerance of 1e-5 is around the lowest we can get with 32bit floats
@@ -248,6 +249,7 @@ def reduced_primal(M, a_free, v, J, J_e, mus, penetrations, h, result):
         a_solve = nonlinear_cg(f=obj, df=d_obj, x0=a_free, tol=tol,
                                ls_tol=ls_tol, M=M, a_free=a_free, J=J, J_e=J_e,
                                a_ref=a_ref, a_e_ref=a_e_ref, mus=mus, precision=precision)
+
         result[:] = a_solve
 
     return

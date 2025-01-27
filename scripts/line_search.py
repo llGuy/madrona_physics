@@ -3,8 +3,7 @@ Exact line search method
 """
 import numpy as np
 
-
-def exact_line_search(xk, pk, tol, M, a_free, a_e_ref, J, J_e, a_ref, mus, precision):
+def exact_line_search(xk, pk, tol, M, a_free, J, J_e, a_ref, a_e_ref, mus, precision):
     """
     Computes the alpha that minimizes phi(alpha) = f(xk + alpha * pk)
     """
@@ -26,9 +25,6 @@ def exact_line_search(xk, pk, tol, M, a_free, a_e_ref, J, J_e, a_ref, mus, preci
     Jx_aref = J @ xk - a_ref
     # J @ p
     Jp = J @ pk
-
-    print(f"J_e shape = {J_e.shape}; xk shape = {xk.shape}")
-    print(J_e @ xk)
 
     Jex_aref = J_e @ xk - a_e_ref
     Jep = J_e @ pk
@@ -88,11 +84,11 @@ def exact_line_search(xk, pk, tol, M, a_free, a_e_ref, J, J_e, a_ref, mus, preci
             # Original
             orig = Jex_aref[idx]
             # After search
-            dj = Jp[idx]
+            dj = Jep[idx]
 
-            np = orig + a * dj
+            Np = orig + a * dj
 
-            fun += np ** 2
+            fun += Np ** 2
             grad += orig * dj + a * (dj ** 2)
             hess += dj ** 2
 

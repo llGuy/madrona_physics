@@ -30,7 +30,8 @@ float *cvxSolveCall(void *vdata,
                     float *J_c,
                     float *J_e,
                     float *mu,
-                    float *penetrations)
+                    float *penetrations,
+                    float *eq_residuals)
 {
     CVXSolveData *data = (CVXSolveData *)vdata;
 
@@ -103,6 +104,15 @@ float *cvxSolveCall(void *vdata,
         nb::device::cpu::value
     );
 
+    Tensor eq_res_tensor (
+        eq_residuals,
+        { num_equality_rows },
+        {},
+        {},
+        nb::dtype<float>(),
+        nb::device::cpu::value
+    );
+
     float *ret_data = new float[total_num_dofs];
     for (int i = 0; i < total_num_dofs; ++i) {
         ret_data[i] = 0.f;
@@ -118,7 +128,7 @@ float *cvxSolveCall(void *vdata,
     );
 
     data->call(m_tensor, free_acc_tensor, vel_tensor, J_tensor,
-        J_e_tensor, mu_tensor, pen_tensor, h, ret_tensor);
+        J_e_tensor, mu_tensor, pen_tensor, eq_res_tensor, h, ret_tensor);
 
     return ret_data;
 }

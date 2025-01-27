@@ -181,7 +181,7 @@ static void createExampleBodyGroup(Engine &ctx)
             ctx,
             grp,
             cv::BodyDesc {
-                .type = cv::DofType::Ball,
+                .type = cv::DofType::Hinge,
                 .initialPos = Vector3 { 0.f, 0.f, 40.01f },
                 .initialRot = Quat::angleAxis(0.5f, { 2.f, 1.f, 1.f }),
                 .responseType = phys::ResponseType::Dynamic,
@@ -196,7 +196,7 @@ static void createExampleBodyGroup(Engine &ctx)
             ctx,
             grp,
             cv::BodyDesc {
-                .type = cv::DofType::Ball,
+                .type = cv::DofType::Hinge,
                 .initialPos = Vector3 { 0.f, 0.f, 40.01f },
                 .initialRot = Quat::angleAxis(0.5f, { 2.f, 1.f, 1.f }),
                 .responseType = phys::ResponseType::Dynamic,
@@ -267,16 +267,34 @@ static void createExampleBodyGroup(Engine &ctx)
 
         cv::joinBodies(
             ctx, grp, l0, l1,
-            cv::JointBall {
+            cv::JointHinge {
                 .relPositionParent = Vector3 { 0.f, 0.f, 16.f },
                 .relPositionChild = Vector3 { 0.f, 0.f, 16.f },
+                .hingeAxis = Vector3 { 1.f, 0.f, 0.f },
             });
 
         cv::joinBodies(
             ctx, grp, l1, l2,
-            cv::JointBall {
+            cv::JointHinge {
                 .relPositionParent = Vector3 { 0.f, 0.f, 16.f },
                 .relPositionChild = Vector3 { 0.f, 0.f, 16.f },
+                .hingeAxis = Vector3 { 1.f, 0.f, 0.f },
+            });
+    }
+
+    { // Attach some joint limits
+        cv::attachLimit(
+            ctx, grp, l1,
+            cv::HingeLimit {
+                .lower = 0.1f,
+                .upper = math::pi / 2.f
+            });
+
+        cv::attachLimit(
+            ctx, grp, l2,
+            cv::HingeLimit {
+                .lower = 0.1f,
+                .upper = math::pi / 2.f
             });
     }
 }
