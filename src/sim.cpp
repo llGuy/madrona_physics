@@ -606,6 +606,9 @@ static void createFloorPlane(Engine &ctx)
     float plane_mus = PhysicsSystem::getObjectMuS(
             ctx, (int32_t)SimObject::Plane);
 
+    // Set mu to 1 for now (TODO: require some form of priority)
+    plane_mus = 1.f;
+
     { // Create the body
         l0 = cv::makeBody(
             ctx,
