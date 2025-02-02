@@ -93,6 +93,7 @@ void Sim::setupTasks(TaskGraphManager &taskgraph_mgr, const Config &cfg)
 static void createObject(Engine &ctx,
                          Vector3 position,
                          Quat rotation,
+                         Diag3x3 scale,
                          SimObject obj)
 {
     Entity grp = cv::makeBodyGroup(ctx, 1);
@@ -130,7 +131,7 @@ static void createObject(Engine &ctx,
                 .objID = (uint32_t)obj,
                 .offset = Vector3::all(0.f),
                 .rotation = Quat::id(),
-                .scale = Diag3x3::id(),
+                .scale = scale,
             });
         cv::attachVisual(
             ctx, grp, l0, 0,
@@ -138,7 +139,7 @@ static void createObject(Engine &ctx,
                 .objID = (uint32_t)obj,
                 .offset = Vector3::all(0.f),
                 .rotation = Quat::id(),
-                .scale = Diag3x3::id(),
+                .scale = scale,
             });
     }
 
@@ -573,6 +574,7 @@ static void createExampleBodyGroup1(Engine &ctx)
             });
     }
 
+#if 0
     { // Set joint limits
         cv::attachLimit(
             ctx, grp, l1,
@@ -588,6 +590,7 @@ static void createExampleBodyGroup1(Engine &ctx)
                 .upper = math::pi / 8.f
             });
     }
+#endif
 }
 
 static void createFloorPlane(Engine &ctx)
@@ -648,6 +651,8 @@ static void createFloorPlane(Engine &ctx)
 static void makeExampleConfig0(Engine &ctx,
                                const Sim::Config &cfg)
 {
+    Diag3x3 id_scale = { 1.f, 1.f, 1.f };
+
     for (int j = 0; j < 3; ++j) {
         for (int i = 0; i < 3; ++i) {
             float random_angle = ctx.data().rng.sampleUniform() *
@@ -666,7 +671,7 @@ static void makeExampleConfig0(Engine &ctx,
                     math::pi / 2.f,
                     { 1.f, 0.f, 0.f });
 
-            createObject(ctx, pos, rot, SimObject::Stick);
+            createObject(ctx, pos, rot, id_scale, SimObject::Stick);
         }
     }
 }
@@ -684,6 +689,23 @@ void Sim::makePhysicsObjects(Engine &ctx,
     // createExampleSlider(ctx);
 
     // makeExampleConfig0(ctx, cfg);
+
+#if 0
+    createObject(
+            ctx, 
+            { -40.f, -40.f, 10.f },
+            Quat::angleAxis(math::pi / 8.f, { 1.f, 1.f, 1.f }),
+            { 4.f, 4.f, 4.f },
+            SimObject::Cube);
+
+    createObject(
+            ctx, 
+            { -40.f, -40.f, 25.f },
+            Quat::angleAxis(math::pi / 8.f, { -1.f, 1.f, 1.f }),
+            { 4.f, 4.f, 4.f },
+            SimObject::Cube);
+#endif
+
     createFloorPlane(ctx);
 }
 

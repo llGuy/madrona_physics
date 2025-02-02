@@ -34,11 +34,19 @@ enum class TaskGraphID : uint32_t {
 };
 
 enum class SimObject : uint32_t {
+    Cube,
+    Sphere,
+    Plane,
+    Stick,
+    NumObjects
+
+#if 0
     Stick,
     Sphere,
-    Capsule,
+    Cube,
     Plane,
     NumObjects
+#endif
 };
 
 // The Sim class encapsulates the per-world state of the simulation.

@@ -1,5 +1,6 @@
 #include "mgr.hpp"
 #include "sim.hpp"
+#include "load.hpp"
 
 #include <random>
 #include <numeric>
@@ -33,6 +34,9 @@ using namespace madrona;
 using namespace madrona::math;
 using namespace madrona::phys;
 using namespace madrona::render;
+using namespace madrona::imp;
+
+namespace fs = std::filesystem;
 
 namespace madPhysics {
 
@@ -101,6 +105,7 @@ static inline Optional<render::RenderManager> initRenderManager(
     });
 }
 
+#if 0
 static imp::ImportedAssets loadRenderAssets(
         Optional<render::RenderManager> &render_mgr)
 {
@@ -112,6 +117,8 @@ static imp::ImportedAssets loadRenderAssets(
         (std::filesystem::path(DATA_DIR) / "sphere_render.obj").string();
     render_asset_paths[(size_t)SimObject::Capsule] =
         (std::filesystem::path(DATA_DIR) / "capsule_render.obj").string();
+    render_asset_paths[(size_t)SimObject::Cube] =
+        (std::filesystem::path(DATA_DIR) / "cube_render.obj").string();
     render_asset_paths[(size_t)SimObject::Plane] =
         (std::filesystem::path(DATA_DIR) / "plane.obj").string();
 
@@ -141,6 +148,7 @@ static imp::ImportedAssets loadRenderAssets(
     render_assets->objects[(CountT)SimObject::Sphere].meshes[0].materialIDX = 0;
     render_assets->objects[(CountT)SimObject::Capsule].meshes[0].materialIDX = 0;
     render_assets->objects[(CountT)SimObject::Plane].meshes[0].materialIDX = 1;
+    render_assets->objects[(CountT)SimObject::Cube].meshes[0].materialIDX = 0;
 
     if (render_mgr.has_value()) {
         render_mgr->loadObjects(render_assets->objects,
@@ -158,22 +166,27 @@ static imp::ImportedAssets loadRenderAssets(
     return std::move(*render_assets);
 }
 
+std::vector<const char *> makeCStrings(const std::vector<std::string> &paths)
+{
+    std::vector<const char *> asset_cstrs;
+    for (size_t i = 0; i < paths.size(); i++) {
+        asset_cstrs[i] = paths[i].c_str();
+    }
+    return asset_cstrs;
+}
+
 static void loadPhysicsAssets(PhysicsLoader &loader)
 {
     imp::AssetImporter importer;
 
-    std::array<std::string, (size_t)SimObject::NumObjects - 1> asset_paths;
-    asset_paths[(size_t)SimObject::Stick] =
-        (std::filesystem::path(DATA_DIR) / "cylinder_long.obj").string();
-    asset_paths[(size_t)SimObject::Sphere] =
-        (std::filesystem::path(DATA_DIR) / "sphere.obj").string();
-    asset_paths[(size_t)SimObject::Capsule] =
-        (std::filesystem::path(DATA_DIR) / "capsule.obj").string();
 
-    std::array<const char *, (size_t)SimObject::NumObjects - 1> asset_cstrs;
-    for (size_t i = 0; i < asset_paths.size(); i++) {
-        asset_cstrs[i] = asset_paths[i].c_str();
-    }
+    std::vector<std::string> asset_paths;
+    asset_paths.push_back((std::filesystem::path(DATA_DIR) / "cylinder_long.obj").string());
+    asset_paths.push_back((std::filesystem::path(DATA_DIR) / "sphere.obj").string());
+    asset_paths.push_back((std::filesystem::path(DATA_DIR) / "capsule.obj").string());
+    asset_paths.push_back((std::filesystem::path(DATA_DIR) / "cube_collision.obj").string());
+
+    std::vector<const char *> asset_cstrs = makeCStrings(asset_paths);
 
     char import_err_buffer[4096];
     auto imported_hulls = importer.importFromDisk(
@@ -187,6 +200,7 @@ static void loadPhysicsAssets(PhysicsLoader &loader)
         imported_hulls->objects.size());
 
     DynArray<DynArray<SourceCollisionPrimitive>> prim_arrays(0);
+    
     HeapArray<SourceCollisionObject> src_objs(
         (CountT)SimObject::NumObjects);
 
@@ -226,6 +240,10 @@ static void loadPhysicsAssets(PhysicsLoader &loader)
         .muS = 0.5f,
         .muD = 2.f,
     });
+    setupHull(SimObject::Cube, 0.5f, {
+        .muS = 0.5f,
+        .muD = 2.f,
+    });
 
     SourceCollisionPrimitive plane_prim {
         .type = CollisionPrimitive::Type::Plane,
@@ -258,6 +276,44 @@ static void loadPhysicsAssets(PhysicsLoader &loader)
 
     loader.loadRigidBodies(rigid_body_assets);
     free(rigid_body_data);
+}
+#endif
+
+void loadAssets(
+        AssetLoader &asset_loader,
+        PhysicsLoader &physics_loader,
+        Optional<RenderManager> &render_mgr)
+{
+    uint32_t stick_idx = asset_loader.addGlobalAsset(
+        (std::filesystem::path(DATA_DIR) / "cylinder_long_render.obj").string(),
+        (std::filesystem::path(DATA_DIR) / "cylinder_long.obj").string());
+
+    assert(stick_idx == (uint32_t)SimObject::Stick);
+
+    std::vector extra_materials = {
+        SourceMaterial { Vector4{0.4f, 0.4f, 0.4f, 0.0f}, -1, 0.8f, 0.2f },
+        SourceMaterial { Vector4{1.0f, 0.1f, 0.1f, 0.0f}, -1, 0.8f, 0.2f },
+    };
+
+    std::vector mat_overrides = {
+        AssetLoader::MaterialOverride { 0, stick_idx },
+        AssetLoader::MaterialOverride { 0, 1 },
+        AssetLoader::MaterialOverride { 1, 2 },
+        AssetLoader::MaterialOverride { 0, 0 },
+    };
+
+    asset_loader.finish(physics_loader,
+                        extra_materials,
+                        mat_overrides,
+                        render_mgr);
+
+    if (render_mgr.has_value()) {
+        render_mgr->configureLighting({
+                { true, 
+                math::Vector3{1.0f, 1.0f, -2.0f}, 
+                math::Vector3{1.0f, 1.0f, 1.0f} }
+                });
+    }
 }
 
 struct Manager::Impl {
@@ -359,25 +415,40 @@ Manager::Impl * Manager::Impl::init(
     sim_cfg.initRandKey = rand::initKey(mgr_cfg.randSeed);
     sim_cfg.cvxSolve = mgr_cfg.cvxSolve;
 
+    AssetLoader asset_loader (
+        BuiltinAssets {
+            .renderCubePath = 
+                (fs::path(DATA_DIR) / "cube_render.obj").string(),
+            .physicsCubePath = 
+                (fs::path(DATA_DIR) / "cube_collision.obj").string(),
+
+            .renderSpherePath = 
+                (fs::path(DATA_DIR) / "sphere_render.obj").string(),
+            // Just pass a dummy thing here
+            .physicsSpherePath = 
+                (fs::path(DATA_DIR) / "cube_collision.obj").string(),
+
+            .renderPlanePath = 
+                (fs::path(DATA_DIR) / "plane.obj").string(),
+        }
+    );
+
     switch (mgr_cfg.execMode) {
     case ExecMode::CUDA: {
 #ifdef MADRONA_CUDA_SUPPORT
         CUcontext cu_ctx = MWCudaExecutor::initCUDA(mgr_cfg.gpuID);
 
-        PhysicsLoader phys_loader(mgr_cfg.execMode, 10);
-        loadPhysicsAssets(phys_loader);
-
-        ObjectManager *phys_obj_mgr = &phys_loader.getObjectManager();
-        sim_cfg.rigidBodyObjMgr = phys_obj_mgr;
-
         Optional<RenderGPUState> render_gpu_state =
             initRenderGPUState(mgr_cfg);
-
         Optional<render::RenderManager> render_mgr =
             initRenderManager(mgr_cfg, render_gpu_state);
 
-        auto imported_assets = loadRenderAssets(
-                render_mgr);
+        PhysicsLoader phys_loader(mgr_cfg.execMode, 10);
+
+        loadAssets(asset_loader, phys_loader, render_mgr);
+
+        ObjectManager *phys_obj_mgr = &phys_loader.getObjectManager();
+        sim_cfg.rigidBodyObjMgr = phys_obj_mgr;
 
         if (render_mgr.has_value()) {
             sim_cfg.renderBridge = render_mgr->bridge();
@@ -425,10 +496,7 @@ Manager::Impl * Manager::Impl::init(
     case ExecMode::CPU: {
         // Hello
         PhysicsLoader phys_loader(ExecMode::CPU, 10);
-        loadPhysicsAssets(phys_loader);
-
-        ObjectManager *phys_obj_mgr = &phys_loader.getObjectManager();
-        sim_cfg.rigidBodyObjMgr = phys_obj_mgr;
+        //loadPhysicsAssets(phys_loader);
 
         Optional<RenderGPUState> render_gpu_state =
             initRenderGPUState(mgr_cfg);
@@ -436,8 +504,16 @@ Manager::Impl * Manager::Impl::init(
         Optional<render::RenderManager> render_mgr =
             initRenderManager(mgr_cfg, render_gpu_state);
 
+        loadAssets(asset_loader, phys_loader, render_mgr);
+
+#if 0
         auto imported_assets = loadRenderAssets(
                 render_mgr);
+#endif
+
+
+        ObjectManager *phys_obj_mgr = &phys_loader.getObjectManager();
+        sim_cfg.rigidBodyObjMgr = phys_obj_mgr;
 
         if (render_mgr.has_value()) {
             sim_cfg.renderBridge = render_mgr->bridge();

@@ -19,7 +19,7 @@ target_link_libraries(stick_cpu_impl
 )
 
 add_library(stick_mgr STATIC
-    mgr.hpp mgr.cpp
+    mgr.hpp mgr.cpp load.cpp
 )
 
 target_link_libraries(stick_mgr 
