@@ -557,6 +557,78 @@ static void createFixedBodyTest(Engine &ctx)
     }
 }
 
+static void createWheelessCar(Engine &ctx)
+{
+    Entity grp = cv::makeBodyGroup(ctx, 2);
+    
+    Entity free_body, link0;
+
+    { // Create the bodies
+        free_body = cv::makeBody(
+                ctx,
+                grp,
+                cv::BodyDesc {
+                    .type = cv::DofType::FreeBody,
+                    .initialPos = Vector3 { 0.f, 0.f, 15.f },
+                    .initialRot = Quat::angleAxis(
+                            math::pi / 2.f, { 1.f, 0.f, 0.f }),
+                    .responseType = phys::ResponseType::Dynamic,
+                    .numCollisionObjs = 0,
+                    .numVisualObjs = 0,
+                    .mass = 1.f,
+                    .inertia = { 1.f, 1.f, 1.f },
+                    .muS = 0.8f
+                });
+
+        link0 = cv::makeBody(
+                ctx,
+                grp,
+                cv::BodyDesc {
+                    .type = cv::DofType::Hinge,
+                    .responseType = phys::ResponseType::Dynamic,
+                    .numCollisionObjs = 1,
+                    .numVisualObjs = 1,
+                    .mass = 1.f,
+                    .inertia = { 1.f, 1.f, 1.f },
+                    .muS = 0.8f
+                });
+    }
+
+    { // Attach collision / visual objects
+        cv::attachCollision(
+            ctx, grp, link0, 0,
+            cv::CollisionDesc {
+                .objID = (uint32_t)SimObject::Stick,
+                .offset = Vector3::all(0.f),
+                .rotation = Quat::id(),
+                .scale = Diag3x3::id(),
+            });
+        cv::attachVisual(
+            ctx, grp, link0, 0,
+            cv::VisualDesc {
+                .objID = (uint32_t)SimObject::Stick,
+                .offset = Vector3::all(0.f),
+                .rotation = Quat::id(),
+                .scale = Diag3x3::id(),
+            });
+    }
+
+    { // Create hierarchy
+        cv::setRoot(ctx, grp, free_body);
+
+        cv::joinBodies(
+            ctx, grp, free_body, link0,
+            cv::JointHinge {
+                .relPositionParent = Vector3 { 0.f, 0.f, 0.f },
+                .relPositionChild = Vector3 { 0.f, 0.f, 0.f },
+                .relParentRotation = Quat::id(),
+                .hingeAxis = Vector3 { 0.f, 0.f, 1.f },
+            });
+    }
+
+    ctx.data().carHinge = link0;
+}
+
 static void createCar2(Engine &ctx)
 {
     Entity grp = cv::makeBodyGroup(ctx, 4);
@@ -1197,7 +1269,7 @@ static void createFloorPlane(Engine &ctx)
                 .numVisualObjs = 1,
                 .mass = plane_mass,
                 .inertia = plane_inertia,
-                .muS = 10.f,
+                .muS = 0.8f,
             });
     }
 
@@ -1280,7 +1352,8 @@ void Sim::makePhysicsObjects(Engine &ctx,
     // createExampleSlider(ctx);
     // createExampleArm(ctx);
     // createFixedBodyTest(ctx);
-    createCar2(ctx);
+    // createCar2(ctx);
+    createWheelessCar(ctx);
 
     Entity actor = ctx.makeEntity<ActorArchetype>();
     ctx.get<Action>(actor).v = 0;
