@@ -151,7 +151,7 @@ struct AppWrapper {
         // Create the viewer viewer
         viz::Viewer viewer(mgr->getRenderManager(), window.get(), {
             .numWorlds = numWorlds,
-            .simTickRate = 10,
+            .simTickRate = 0,
             .cameraMoveSpeed = camera_move_speed * 7.f,
             .cameraPosition = { 41.899895f, -57.452969f, 33.152081f },
             .cameraRotation = { 0.944346f, -0.054453f, -0.018675f, 0.323878f },
@@ -251,7 +251,7 @@ NB_MODULE(madrona_stick, m) {
                             int64_t num_worlds) {
             WindowManager wm {};
             WindowHandle window = wm.makeWindow("Stick Viewer",
-                    2000, 1000);
+                    4000, 2000);
             render::GPUHandle render_gpu = wm.initGPU(0, { window.get() });
 
             CVXSolveData *solve_data = new CVXSolveData {

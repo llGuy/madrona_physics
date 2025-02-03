@@ -4,7 +4,7 @@
 #include <madrona/custom_context.hpp>
 #include <madrona/rand.hpp>
 #include <madrona/physics.hpp>
-// #include <madrona/cvphysics.hpp>
+#include <madrona/cvphysics.hpp>
 #include <madrona/render/ecs.hpp>
 
 namespace madPhysics {
@@ -39,14 +39,6 @@ enum class SimObject : uint32_t {
     Plane,
     Stick,
     NumObjects
-
-#if 0
-    Stick,
-    Sphere,
-    Cube,
-    Plane,
-    NumObjects
-#endif
 };
 
 // The Sim class encapsulates the per-world state of the simulation.
@@ -64,8 +56,11 @@ struct Sim : public madrona::WorldBase {
         madrona::phys::ObjectManager *rigidBodyObjMgr;
         const madrona::render::RenderECSBridge *renderBridge;
 
-        // madrona::phys::CVXSolve *cvxSolve;
         void *cvxSolve;
+
+        uint32_t numModelConfigs;
+        madrona::phys::cv::ModelConfig *modelConfigs;
+        madrona::phys::cv::ModelData modelData;
     };
 
     struct WorldInit {};

@@ -22,6 +22,15 @@ struct BuiltinAssets {
     std::string renderPlanePath;
 };
 
+struct URDFExport {
+    madrona::phys::cv::ModelData modelData;
+    uint32_t numModelConfigs;
+    madrona::phys::cv::ModelConfig *modelConfigs;
+
+    URDFExport makeCPUCopy(URDFExport urdf_export);
+    URDFExport makeGPUCopy(URDFExport urdf_export);
+};
+
 // This does both rendering and physics asset loading
 struct AssetLoader {
     AssetLoader(const BuiltinAssets &builtins);
@@ -37,12 +46,6 @@ struct AssetLoader {
     // Returns the index of the ModelConfig struct.
     // These need to be added after all the global assets
     uint32_t addURDF(const std::string &path);
-
-    struct URDFExport {
-        madrona::phys::cv::ModelData modelData;
-        uint32_t numModelConfigs;
-        madrona::phys::cv::ModelConfig *modelConfigs;
-    };
 
     struct MaterialOverride {
         uint32_t extraMatIndex;

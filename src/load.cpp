@@ -1,5 +1,6 @@
 #include "load.hpp"
 
+#include <filesystem>
 #include <madrona/urdf.hpp>
 #include <madrona/importer.hpp>
 
@@ -71,17 +72,30 @@ uint32_t AssetLoader::addURDF(const std::string &path)
         impl->physicsAssetPaths);
 }
 
+static void postProcessPaths(std::vector<std::string> &paths)
+{
+    const std::string prefix = "package:/";
+    const std::string replacement =
+        (std::filesystem::path(DATA_DIR) / "urdf").string();
+
+    for (size_t i = 0; i < paths.size(); ++i) {
+        if (paths[i].find(prefix) == 0) {
+            paths[i].replace(0, prefix.length(), replacement);
+        }
+    }
+}
+
 static std::vector<const char *> makeCStrings(
         const std::vector<std::string> &paths)
 {
     std::vector<const char *> asset_cstrs;
-    for (size_t i = 0; i < paths.size(); i++) {
+    for (size_t i = 0; i < paths.size(); ++i) {
         asset_cstrs.push_back(paths[i].c_str());
     }
     return asset_cstrs;
 }
 
-AssetLoader::URDFExport AssetLoader::finish(
+URDFExport AssetLoader::finish(
         PhysicsLoader &loader,
         const std::vector<SourceMaterial> &extra_materials,
         const std::vector<MaterialOverride> &mat_overrides,
@@ -92,7 +106,7 @@ AssetLoader::URDFExport AssetLoader::finish(
     URDFExport urdf_export;
 
     { // Physics first
-        // TODO Post process some of the strings for URDF
+        postProcessPaths(impl->physicsAssetPaths);
         std::vector<const char *> physics_cstrs =
             makeCStrings(impl->physicsAssetPaths);
 
@@ -130,7 +144,7 @@ AssetLoader::URDFExport AssetLoader::finish(
                 .prims = Span<const SourceCollisionPrimitive>(
                         prim_arrays.back()),
                 .invMass = 0.5f,
-                .friction = { 0.5f, 2.f }
+                .friction = { 1.f, 2.f }
             });
         };
 
@@ -209,6 +223,46 @@ AssetLoader::URDFExport AssetLoader::finish(
     }
 
     return urdf_export;
+}
+
+URDFExport URDFExport::makeCPUCopy(URDFExport urdf_export)
+{
+    URDFExport cpy;
+    cpy.numModelConfigs = urdf_export.numModelConfigs;
+
+    cpy.modelConfigs = (cv::ModelConfig *)malloc(
+            sizeof(cv::ModelConfig) * cpy.numModelConfigs);
+    memcpy(cpy.modelConfigs, urdf_export.modelConfigs, 
+            sizeof(cv::ModelConfig) * cpy.numModelConfigs);
+
+    cpy.modelData = urdf_export.modelData;
+
+    cpy.modelData.bodies = (cv::BodyDesc *)malloc(
+            sizeof(cv::BodyDesc) * cpy.modelData.numBodies);
+    memcpy(cpy.modelData.bodies, urdf_export.modelData.bodies,
+            sizeof(cv::BodyDesc) * cpy.modelData.numBodies);
+
+    cpy.modelData.connections = (cv::JointConnection *)malloc(
+            sizeof(cv::JointConnection) * cpy.modelData.numConnections);
+    memcpy(cpy.modelData.connections, urdf_export.modelData.connections,
+            sizeof(cv::JointConnection) * cpy.modelData.numConnections);
+
+    cpy.modelData.colliders = (cv::CollisionDesc *)malloc(
+            sizeof(cv::CollisionDesc) * cpy.modelData.numColliders);
+    memcpy(cpy.modelData.colliders, urdf_export.modelData.colliders,
+            sizeof(cv::CollisionDesc) * cpy.modelData.numColliders);
+
+    cpy.modelData.visuals = (cv::VisualDesc *)malloc(
+            sizeof(cv::VisualDesc) * cpy.modelData.numVisuals);
+    memcpy(cpy.modelData.visuals, urdf_export.modelData.visuals,
+            sizeof(cv::VisualDesc) * cpy.modelData.numVisuals);
+
+    return cpy;
+}
+
+URDFExport URDFExport::makeGPUCopy(URDFExport urdf_export)
+{
+    
 }
     
 }
