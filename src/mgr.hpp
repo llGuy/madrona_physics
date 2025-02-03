@@ -33,6 +33,8 @@ public:
 
     madrona::render::RenderManager & getRenderManager();
 
+    void setAction(int32_t agent_idx, int32_t move_amount);
+
 private:
     struct Impl;
     struct CPUImpl;

@@ -167,6 +167,9 @@ struct AppWrapper {
 
     void run()
     {
+        using namespace madrona;
+        using namespace madrona::viz;
+
         float camera_move_speed = 10.f;
 
         // Create the viewer viewer
@@ -182,12 +185,17 @@ struct AppWrapper {
 
         // Main loop for the viewer viewer
         viewer.loop(
-            [this](CountT /* world_idx */, const Viewer::UserInput &/* input */) {
+            [this](CountT /* world_idx */, const Viewer::UserInput & input) {
                 // No input
             }
             , [this](CountT /* world_idx */, CountT /* agent_idx */,
-                   const Viewer::UserInput & /* input */) {
+                   const Viewer::UserInput & input) {
                 // No input
+                if (input.keyPressed(Viewer::KeyboardKey::W)) {
+                    mgr->setAction(0, 1);
+                } else if (input.keyPressed(Viewer::KeyboardKey::S)) {
+                    mgr->setAction(0, -1);
+                }
             }, [this, &step_i]() {
                 mgr->step();
 

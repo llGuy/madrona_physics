@@ -114,10 +114,16 @@ URDFExport loadAssets(
     uint32_t stick_idx = asset_loader.addGlobalAsset(
         (std::filesystem::path(DATA_DIR) / "cylinder_long_render.obj").string(),
         (std::filesystem::path(DATA_DIR) / "cylinder_long.obj").string());
-    assert(stick_idx == (uint32_t)SimObject::Stick);
-#endif
 
 #if 1
+    uint32_t disk_idx = asset_loader.addGlobalAsset(
+        (std::filesystem::path(DATA_DIR) / "disk_render.obj").string(),
+        (std::filesystem::path(DATA_DIR) / "disk.obj").string());
+#endif
+
+#endif
+
+#if 0
     // Add a URDF
     uint32_t urdf_idx = asset_loader.addURDF(
         (std::filesystem::path(DATA_DIR) / "urdf/franka_lnd.urdf"));
@@ -130,6 +136,7 @@ URDFExport loadAssets(
 
     std::vector mat_overrides = {
         AssetLoader::MaterialOverride { 0, stick_idx },
+        AssetLoader::MaterialOverride { 0, disk_idx },
         AssetLoader::MaterialOverride { 0, 1 },
         AssetLoader::MaterialOverride { 1, 2 },
         AssetLoader::MaterialOverride { 0, 0 },
@@ -157,14 +164,18 @@ struct Manager::Impl {
     Optional<render::RenderManager> renderMgr;
     CVXSolve *cvxSolve;
 
+    Action *agentActionsBuffer;
+
     inline Impl(const Manager::Config &mgr_cfg,
                 Optional<RenderGPUState> &&render_gpu_state,
                 Optional<render::RenderManager> &&render_mgr,
-                CVXSolve *cvx_solve)
+                CVXSolve *cvx_solve,
+                Action *action_buffer)
         : cfg(mgr_cfg),
           renderGPUState(std::move(render_gpu_state)),
           renderMgr(std::move(render_mgr)),
-          cvxSolve(cvx_solve)
+          cvxSolve(cvx_solve),
+          agentActionsBuffer(action_buffer)
     {}
 
     inline virtual ~Impl() {}
@@ -186,10 +197,11 @@ struct Manager::CUDAImpl final : Manager::Impl {
                    Optional<render::RenderManager> &&render_mgr,
                    MWCudaExecutor &&gpu_exec,
                    MWCudaLaunchGraph &&init_graph,
-                   MWCudaLaunchGraph &&step_graph)
+                   MWCudaLaunchGraph &&step_graph,
+                   Action *action_buffer)
         : Impl(mgr_cfg,
                std::move(render_gpu_state), std::move(render_mgr),
-               nullptr),
+               nullptr, action_buffer),
           gpuExec(std::move(gpu_exec)),
           initGraph(std::move(init_graph)),
           stepGraph(std::move(step_graph))
@@ -221,10 +233,11 @@ struct Manager::CPUImpl final : Manager::Impl {
                    Optional<RenderGPUState> &&render_gpu_state,
                    CVXSolve *cvx_solve,
                    Optional<render::RenderManager> &&render_mgr,
-                   TaskGraphT &&cpu_exec)
+                   TaskGraphT &&cpu_exec,
+                   Action *action_buffer)
         : Impl(mgr_cfg,
                std::move(render_gpu_state), std::move(render_mgr),
-               cvx_solve),
+               cvx_solve, action_buffer),
           cpuExec(std::move(cpu_exec)),
           physLoader(std::move(phys_loader))
     {}
@@ -316,6 +329,8 @@ Manager::Impl * Manager::Impl::init(
         MWCudaLaunchGraph init_graph = gpu_exec.buildLaunchGraph(
                 TaskGraphID::Init);
 
+        Action *actions = (Action *)gpu_exec.getExported((uint32_t)ExportID::Action);
+
         return new CUDAImpl {
             mgr_cfg,
             std::move(render_gpu_state),
@@ -323,6 +338,7 @@ Manager::Impl * Manager::Impl::init(
             std::move(gpu_exec),
             std::move(init_graph),
             std::move(step_graph),
+            actions,
         };
 #else
         FATAL("Madrona was not compiled with CUDA support");
@@ -367,13 +383,16 @@ Manager::Impl * Manager::Impl::init(
             (uint32_t)TaskGraphID::NumTaskGraphs,
         };
 
+        Action *actions = (Action *)cpu_exec.getExported((uint32_t)ExportID::Action);
+
         return new CPUImpl {
             mgr_cfg,
             std::move(phys_loader),
             std::move(render_gpu_state),
             mgr_cfg.cvxSolve,
             std::move(render_mgr),
-            std::move(cpu_exec)
+            std::move(cpu_exec),
+            actions
         };
     } break;
     default: MADRONA_UNREACHABLE();
@@ -401,6 +420,26 @@ void Manager::step()
 render::RenderManager & Manager::getRenderManager()
 {
     return *impl_->renderMgr;
+}
+
+void Manager::setAction(int32_t agent_idx,
+                        int32_t move_amount)
+{
+    Action action { 
+        .v = move_amount
+    };
+
+    auto *action_ptr = impl_->agentActionsBuffer +
+        agent_idx;
+
+    if (impl_->cfg.execMode == ExecMode::CUDA) {
+#ifdef MADRONA_CUDA_SUPPORT
+        cudaMemcpy(action_ptr, &action, sizeof(Action),
+                   cudaMemcpyHostToDevice);
+#endif
+    } else {
+        *action_ptr = action;
+    }
 }
 
 }

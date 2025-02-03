@@ -38,8 +38,17 @@ enum class SimObject : uint32_t {
     Sphere,
     Plane,
     Stick,
+    Disk,
     NumObjects
 };
+
+struct Action {
+    int v;
+};
+
+struct ActorArchetype : public madrona::Archetype<
+    Action
+> {};
 
 // The Sim class encapsulates the per-world state of the simulation.
 // Sim is always available by calling ctx.data() given a reference
@@ -84,6 +93,8 @@ struct Sim : public madrona::WorldBase {
     Entity stickRoot;
     Entity stickChild;
     Entity plane;
+
+    Entity carHinge;
 };
 
 class Engine : public ::madrona::CustomContext<Engine, Sim> {
