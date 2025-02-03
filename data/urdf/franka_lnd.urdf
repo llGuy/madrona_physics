@@ -291,7 +291,7 @@
     <collision name="main_insertion_link_collision_0">
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://meshes/obj/tool_main_insertion_link_collision_0.obj"/>
+        <mesh filename="package://meshes/obj/tool_main_insertion_link_collision_0.test.obj"/>
       </geometry>
     </collision>
     <collision name="main_insertion_link_collision_1">
