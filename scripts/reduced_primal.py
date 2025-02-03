@@ -12,7 +12,7 @@ np.set_printoptions(threshold=np.inf)
 np.set_printoptions(linewidth=np.inf)
 
 
-def get_aref(v, J, r, h, precision):
+def get_aref(v, J, r, h, R, diag_approx, precision):
     """
     Computes the ``reference acceleration'' described by MuJoCo.
     The reference acceleration is based on Baumgarte stabilization
@@ -35,10 +35,14 @@ def get_aref(v, J, r, h, precision):
     b = 2 / (d_max * time_const)
 
     aref = -b * (J @ v) - k * imp * r
+
+    # Also compute inverse constraint mass
+    R[:] = ((1 - imp) / imp) * diag_approx
     return aref
 
 
-def reduced_primal(M, a_free, v, J, J_e, mus, penetrations, eq_res, h, result):
+def reduced_primal(M, a_free, v, J, J_e, mus, penetrations, eq_res,
+                   diag_approx_c, diag_approx_e, h, result):
     """
     Solves the reduced primal problem:
         min \|x - M^{-1} C\|_M^2 + s(Jx - a_ref)
@@ -54,9 +58,10 @@ def reduced_primal(M, a_free, v, J, J_e, mus, penetrations, eq_res, h, result):
     v = v.astype(precision)
     J = J.astype(precision)
     J_e = J_e.astype(precision)
-
     mus = mus.astype(precision)
     penetrations = penetrations.astype(precision)
+    diag_approx_c = diag_approx_c.astype(precision)
+    diag_approx_e = diag_approx_e.astype(precision)
 
     # Convert J from column-major to row-major
     J = J.T
@@ -73,14 +78,18 @@ def reduced_primal(M, a_free, v, J, J_e, mus, penetrations, eq_res, h, result):
     for i in range(num_contacts_pts):
         r[i * 3] = -penetrations[i]
 
-    # Get a_ref for contacts
-    a_ref = get_aref(v, J, r, h, precision)
+    # Get a_ref, impedance for contacts
+    R_c = np.zeros(J.shape[0], dtype=precision)
+    a_ref = get_aref(v=v, J=J, r=r, h=h, R=R_c, diag_approx=diag_approx_c,
+                     precision=precision)
 
     # Get a_ref for equality constraint
-    #r_e = np.zeros(J_e.shape[0], dtype=precision)
+    # r_e = np.zeros(J_e.shape[0], dtype=precision)
     r_e = eq_res
-    print(f"r_e = {r_e}")
-    a_e_ref = get_aref(v, J_e, r_e, h, precision)
+    R_e = np.zeros(J_e.shape[0], dtype=precision)
+    # print(f"r_e = {r_e}")
+    a_e_ref = get_aref(v=v, J=J_e, r=r_e, h=h, R=R_e, diag_approx=diag_approx_e,
+                       precision=precision)
 
     # Define convex s and our objective
     def s(jar):
@@ -223,13 +232,15 @@ def reduced_primal(M, a_free, v, J, J_e, mus, penetrations, eq_res, h, result):
 
     def obj(x):
         x_min_a_free = x - a_free
-        return 0.5 * x_min_a_free.T @ (M @ x_min_a_free) + s(J @ x - a_ref) + s_equality(J_e @ x - a_e_ref)
+        return 0.5 * x_min_a_free.T @ (M @ x_min_a_free) + s(
+            J @ x - a_ref) + s_equality(J_e @ x - a_e_ref)
 
     def d_obj(x):
         x_min_a_free = x - a_free
-        print(f"equality constraint contrib: {a_e_ref})")
+        # print(f"equality constraint contrib: {a_e_ref})")
 
-        return (M @ x_min_a_free) + J.T @ ds(J @ x - a_ref) + J_e.T @ ds_equality(J_e @ x - a_e_ref)
+        return (M @ x_min_a_free) + J.T @ ds(
+            J @ x - a_ref) + J_e.T @ ds_equality(J_e @ x - a_e_ref)
 
     def h_obj(x):
         # return HMatrix(A=M, E=J.T @ hs(J @ x - a_ref) @ J)
@@ -248,7 +259,8 @@ def reduced_primal(M, a_free, v, J, J_e, mus, penetrations, eq_res, h, result):
         tol, ls_tol = 1e-8, 0.01
         a_solve = nonlinear_cg(f=obj, df=d_obj, x0=a_free, tol=tol,
                                ls_tol=ls_tol, M=M, a_free=a_free, J=J, J_e=J_e,
-                               a_ref=a_ref, a_e_ref=a_e_ref, mus=mus, precision=precision)
+                               a_ref=a_ref, a_e_ref=a_e_ref, mus=mus,
+                               precision=precision)
 
         result[:] = a_solve
 
