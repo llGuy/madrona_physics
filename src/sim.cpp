@@ -107,6 +107,8 @@ static void createObject(Engine &ctx,
     float obj_mus = PhysicsSystem::getObjectMuS(
             ctx, (int32_t)obj);
 
+    printf("Cube mu = %f\n", obj_mus);
+
     { // Create the body
         l0 = cv::makeBody(
             ctx,
@@ -574,7 +576,7 @@ static void createExampleBodyGroup1(Engine &ctx)
             });
     }
 
-#if 0
+#if 1
     { // Set joint limits
         cv::attachLimit(
             ctx, grp, l1,
@@ -679,6 +681,17 @@ static void makeExampleConfig0(Engine &ctx,
     }
 }
 
+Entity createURDFModel(Engine &ctx,
+                       const Sim::Config &cfg)
+{
+    Entity urdf_model = cv::loadModel(
+            ctx, cfg.modelConfigs[0], cfg.modelData,
+            Vector3 { 0.f, 0.f, 30.f },
+            Quat::id());
+
+    return urdf_model;
+}
+
 void Sim::makePhysicsObjects(Engine &ctx,
                              const Config &cfg)
 {
@@ -688,12 +701,9 @@ void Sim::makePhysicsObjects(Engine &ctx,
             physicsSolverSelector,
             (CVXSolve *)cfg.cvxSolve);
 
+#if 1
     createExampleBodyGroup1(ctx);
-    // createExampleSlider(ctx);
 
-    // makeExampleConfig0(ctx, cfg);
-
-#if 0
     createObject(
             ctx, 
             { -40.f, -40.f, 10.f },
@@ -709,6 +719,7 @@ void Sim::makePhysicsObjects(Engine &ctx,
             SimObject::Cube);
 #endif
 
+    // createURDFModel(ctx, cfg);
     createFloorPlane(ctx);
 }
 

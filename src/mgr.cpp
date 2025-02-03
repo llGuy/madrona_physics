@@ -105,7 +105,7 @@ static inline Optional<render::RenderManager> initRenderManager(
     });
 }
 
-void loadAssets(
+URDFExport loadAssets(
         AssetLoader &asset_loader,
         PhysicsLoader &physics_loader,
         Optional<RenderManager> &render_mgr)
@@ -115,6 +115,12 @@ void loadAssets(
         (std::filesystem::path(DATA_DIR) / "cylinder_long.obj").string());
 
     assert(stick_idx == (uint32_t)SimObject::Stick);
+
+#if 0
+    // Add a URDF
+    uint32_t urdf_idx = asset_loader.addURDF(
+        (std::filesystem::path(DATA_DIR) / "urdf/franka_lnd.urdf"));
+#endif
 
     std::vector extra_materials = {
         SourceMaterial { Vector4{0.4f, 0.4f, 0.4f, 0.0f}, -1, 0.8f, 0.2f },
@@ -128,7 +134,7 @@ void loadAssets(
         AssetLoader::MaterialOverride { 0, 0 },
     };
 
-    asset_loader.finish(physics_loader,
+    URDFExport urdf_export = asset_loader.finish(physics_loader,
                         extra_materials,
                         mat_overrides,
                         render_mgr);
@@ -140,6 +146,8 @@ void loadAssets(
                 math::Vector3{1.0f, 1.0f, 1.0f} }
                 });
     }
+
+    return urdf_export;
 }
 
 struct Manager::Impl {
@@ -330,13 +338,12 @@ Manager::Impl * Manager::Impl::init(
         Optional<render::RenderManager> render_mgr =
             initRenderManager(mgr_cfg, render_gpu_state);
 
-        loadAssets(asset_loader, phys_loader, render_mgr);
+        URDFExport urdf_export = loadAssets(asset_loader, phys_loader, render_mgr);
+        URDFExport urdf_cpy = urdf_export.makeCPUCopy(urdf_export);
 
-#if 0
-        auto imported_assets = loadRenderAssets(
-                render_mgr);
-#endif
-
+        sim_cfg.numModelConfigs = urdf_cpy.numModelConfigs;
+        sim_cfg.modelConfigs = urdf_cpy.modelConfigs;
+        sim_cfg.modelData = urdf_cpy.modelData;
 
         ObjectManager *phys_obj_mgr = &phys_loader.getObjectManager();
         sim_cfg.rigidBodyObjMgr = phys_obj_mgr;
