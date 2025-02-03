@@ -50,6 +50,9 @@ void actionTask(Engine &ctx,
     } else if (action.v == -1) {
         Entity hinge = ctx.data().carHinge;
         cv::addHingeExternalForce(ctx, hinge, -10.f);
+    } else {
+        Entity hinge = ctx.data().carHinge;
+        cv::addHingeExternalForce(ctx, hinge, 0.f);
     }
 }
 
@@ -602,7 +605,7 @@ static void createCar2(Engine &ctx)
                     .numVisualObjs = 1,
                     .mass = 1.f,
                     .inertia = { 1.f, 1.f, 1.f },
-                    .muS = 1.f
+                    .muS = 10.f
                 });
 
         wheel1 = cv::makeBody(
@@ -617,7 +620,7 @@ static void createCar2(Engine &ctx)
                     .numVisualObjs = 1,
                     .mass = 1.f,
                     .inertia = { 1.f, 1.f, 1.f },
-                    .muS = 1.f
+                    .muS = 10.f
                 });
     }
 
@@ -1194,7 +1197,7 @@ static void createFloorPlane(Engine &ctx)
                 .numVisualObjs = 1,
                 .mass = plane_mass,
                 .inertia = plane_inertia,
-                .muS = plane_mus,
+                .muS = 10.f,
             });
     }
 

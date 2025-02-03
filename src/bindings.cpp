@@ -195,6 +195,8 @@ struct AppWrapper {
                     mgr->setAction(0, 1);
                 } else if (input.keyPressed(Viewer::KeyboardKey::S)) {
                     mgr->setAction(0, -1);
+                } else {
+                    mgr->setAction(0, 0);
                 }
             }, [this, &step_i]() {
                 mgr->step();
