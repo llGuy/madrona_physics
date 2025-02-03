@@ -110,16 +110,18 @@ URDFExport loadAssets(
         PhysicsLoader &physics_loader,
         Optional<RenderManager> &render_mgr)
 {
-#if 0
+#if 1
     uint32_t stick_idx = asset_loader.addGlobalAsset(
         (std::filesystem::path(DATA_DIR) / "cylinder_long_render.obj").string(),
         (std::filesystem::path(DATA_DIR) / "cylinder_long.obj").string());
     assert(stick_idx == (uint32_t)SimObject::Stick);
 #endif
 
+#if 1
     // Add a URDF
     uint32_t urdf_idx = asset_loader.addURDF(
         (std::filesystem::path(DATA_DIR) / "urdf/franka_lnd.urdf"));
+#endif
 
     std::vector extra_materials = {
         SourceMaterial { Vector4{0.4f, 0.4f, 0.4f, 0.0f}, -1, 0.8f, 0.2f },
@@ -127,7 +129,7 @@ URDFExport loadAssets(
     };
 
     std::vector mat_overrides = {
-        // AssetLoader::MaterialOverride { 0, stick_idx },
+        AssetLoader::MaterialOverride { 0, stick_idx },
         AssetLoader::MaterialOverride { 0, 1 },
         AssetLoader::MaterialOverride { 1, 2 },
         AssetLoader::MaterialOverride { 0, 0 },
