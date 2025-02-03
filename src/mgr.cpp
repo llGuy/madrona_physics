@@ -116,9 +116,11 @@ URDFExport loadAssets(
 
     assert(stick_idx == (uint32_t)SimObject::Stick);
 
+#if 0
     // Add a URDF
     uint32_t urdf_idx = asset_loader.addURDF(
         (std::filesystem::path(DATA_DIR) / "urdf/franka_lnd.urdf"));
+#endif
 
     std::vector extra_materials = {
         SourceMaterial { Vector4{0.4f, 0.4f, 0.4f, 0.0f}, -1, 0.8f, 0.2f },

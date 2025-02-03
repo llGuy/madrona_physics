@@ -701,7 +701,7 @@ void Sim::makePhysicsObjects(Engine &ctx,
             physicsSolverSelector,
             (CVXSolve *)cfg.cvxSolve);
 
-#if 0
+#if 1
     createExampleBodyGroup1(ctx);
 
     createObject(
@@ -719,7 +719,7 @@ void Sim::makePhysicsObjects(Engine &ctx,
             SimObject::Cube);
 #endif
 
-    createURDFModel(ctx, cfg);
+    // createURDFModel(ctx, cfg);
     createFloorPlane(ctx);
 }
 
