@@ -1341,7 +1341,7 @@ Entity createURDFModel(Engine &ctx,
             ctx, cfg.modelConfigs[0], cfg.modelData,
             Vector3 { 0.f, 0.f, 0.f },
             Quat::id(),
-            20.f);
+            40.f);
 
     return urdf_model;
 }
@@ -1355,7 +1355,7 @@ void Sim::makePhysicsObjects(Engine &ctx,
             physicsSolverSelector,
             (CVXSolve *)cfg.cvxSolve);
 
-#if 1
+#if 0
     // createExampleBodyGroup2(ctx);
     // createExampleBodyGroup1(ctx);
     // createExampleSlider(ctx);
@@ -1383,7 +1383,7 @@ void Sim::makePhysicsObjects(Engine &ctx,
             SimObject::Cube);
 #endif
 #else
-    // createURDFModel(ctx, cfg);
+    createURDFModel(ctx, cfg);
 #endif
 
     createFloorPlane(ctx);
