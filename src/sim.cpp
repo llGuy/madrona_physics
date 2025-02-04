@@ -46,10 +46,10 @@ void actionTask(Engine &ctx,
 {
     if (action.v == 1) {
         Entity hinge = ctx.data().carHinge;
-        cv::addHingeExternalForce(ctx, hinge, 10.f);
+        cv::addHingeExternalForce(ctx, hinge, 30.f);
     } else if (action.v == -1) {
         Entity hinge = ctx.data().carHinge;
-        cv::addHingeExternalForce(ctx, hinge, -10.f);
+        cv::addHingeExternalForce(ctx, hinge, -30.f);
     } else {
         Entity hinge = ctx.data().carHinge;
         cv::addHingeExternalForce(ctx, hinge, 0.f);
@@ -646,9 +646,9 @@ static void createCar2(Engine &ctx)
                             math::pi / 2.f, { 1.f, 0.f, 0.f }),
                     .responseType = phys::ResponseType::Dynamic,
                     .numCollisionObjs = 0,
-                    .numVisualObjs = 0,
-                    .mass = 1.f,
-                    .inertia = { 1.f, 1.f, 1.f },
+                    .numVisualObjs = 1,
+                    .mass = 10.f,
+                    .inertia = Diag3x3::uniform(10000.f),
                     .muS = 1.f
                 });
 
@@ -677,7 +677,7 @@ static void createCar2(Engine &ctx)
                     .numVisualObjs = 1,
                     .mass = 1.f,
                     .inertia = { 1.f, 1.f, 1.f },
-                    .muS = 10.f
+                    .muS = 1.f
                 });
 
         wheel1 = cv::makeBody(
@@ -692,11 +692,19 @@ static void createCar2(Engine &ctx)
                     .numVisualObjs = 1,
                     .mass = 1.f,
                     .inertia = { 1.f, 1.f, 1.f },
-                    .muS = 10.f
+                    .muS = 1.f
                 });
     }
 
     { // Attach collision / visual objects
+        cv::attachVisual(
+            ctx, grp, free_body, 0,
+            cv::VisualDesc {
+                .objID = (uint32_t)SimObject::Cube,
+                .offset = Vector3::all(0.f),
+                .rotation = Quat::id(),
+                .scale = Diag3x3::uniform(10.f)
+            });
         cv::attachCollision(
             ctx, grp, link0, 0,
             cv::CollisionDesc {
@@ -1352,8 +1360,8 @@ void Sim::makePhysicsObjects(Engine &ctx,
     // createExampleSlider(ctx);
     // createExampleArm(ctx);
     // createFixedBodyTest(ctx);
-    // createCar2(ctx);
-    createWheelessCar(ctx);
+    createCar2(ctx);
+    // createWheelessCar(ctx);
 
     Entity actor = ctx.makeEntity<ActorArchetype>();
     ctx.get<Action>(actor).v = 0;
