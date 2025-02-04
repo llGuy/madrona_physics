@@ -123,7 +123,7 @@ URDFExport loadAssets(
 
 #endif
 
-#if 0
+#if 1
     // Add a URDF
     uint32_t urdf_idx = asset_loader.addURDF(
         (std::filesystem::path(DATA_DIR) / "urdf/franka_lnd.urdf"));

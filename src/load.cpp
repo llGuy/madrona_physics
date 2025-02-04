@@ -218,6 +218,10 @@ URDFExport AssetLoader::finish(
             render_assets->materials.push_back(mat);
         }
 
+        for (int i = 0; i < render_assets->objects.size(); ++i) {
+            render_assets->objects[i].meshes[0].materialIDX = 0;
+        }
+
         for (auto mat_override : mat_overrides) {
             render_assets->objects[mat_override.objID].meshes[0].materialIDX = 
                 mat_override.extraMatIndex + extra_mat_offset;

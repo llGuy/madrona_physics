@@ -46,10 +46,10 @@ void actionTask(Engine &ctx,
 {
     if (action.v == 1) {
         Entity hinge = ctx.data().carHinge;
-        cv::addHingeExternalForce(ctx, hinge, 30.f);
+        cv::addHingeExternalForce(ctx, hinge, 70.f);
     } else if (action.v == -1) {
         Entity hinge = ctx.data().carHinge;
-        cv::addHingeExternalForce(ctx, hinge, -30.f);
+        cv::addHingeExternalForce(ctx, hinge, -70.f);
     } else {
         Entity hinge = ctx.data().carHinge;
         cv::addHingeExternalForce(ctx, hinge, 0.f);
@@ -1339,8 +1339,9 @@ Entity createURDFModel(Engine &ctx,
 {
     Entity urdf_model = cv::loadModel(
             ctx, cfg.modelConfigs[0], cfg.modelData,
-            Vector3 { 0.f, 0.f, 30.f },
-            Quat::id());
+            Vector3 { 0.f, 0.f, 0.f },
+            Quat::id(),
+            20.f);
 
     return urdf_model;
 }
@@ -1382,7 +1383,7 @@ void Sim::makePhysicsObjects(Engine &ctx,
             SimObject::Cube);
 #endif
 #else
-    createURDFModel(ctx, cfg);
+    // createURDFModel(ctx, cfg);
 #endif
 
     createFloorPlane(ctx);
