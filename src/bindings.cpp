@@ -201,7 +201,7 @@ struct AppWrapper {
             }, [this, &step_i]() {
                 mgr->step();
 
-                printf("step: %u\n", step_i);
+                // printf("step: %u\n", step_i);
                 if (step_i == 75) {
                     // exit(0);
                 }

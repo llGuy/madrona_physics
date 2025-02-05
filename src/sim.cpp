@@ -44,6 +44,7 @@ void Sim::registerTypes(ECSRegistry &registry, const Config &cfg)
 void actionTask(Engine &ctx,
                 Action &action)
 {
+#if 0
     if (action.v == 1) {
         Entity hinge = ctx.data().carHinge;
         cv::addHingeExternalForce(ctx, hinge, 70.f);
@@ -54,6 +55,7 @@ void actionTask(Engine &ctx,
         Entity hinge = ctx.data().carHinge;
         cv::addHingeExternalForce(ctx, hinge, 0.f);
     }
+#endif
 }
 
 #ifdef MADRONA_GPU_MODE
@@ -1077,7 +1079,7 @@ static void createExampleBodyGroup1(Engine &ctx)
             });
     }
 
-#if 1
+#if 0
     { // Set joint limits
         cv::attachLimit(
             ctx, grp, l1,
@@ -1357,11 +1359,11 @@ void Sim::makePhysicsObjects(Engine &ctx,
 
 #if 0
     // createExampleBodyGroup2(ctx);
-    // createExampleBodyGroup1(ctx);
+    createExampleBodyGroup1(ctx);
     // createExampleSlider(ctx);
     // createExampleArm(ctx);
     // createFixedBodyTest(ctx);
-    createCar2(ctx);
+    // createCar2(ctx);
     // createWheelessCar(ctx);
 
     Entity actor = ctx.makeEntity<ActorArchetype>();
