@@ -423,10 +423,12 @@ render::RenderManager & Manager::getRenderManager()
 }
 
 void Manager::setAction(int32_t agent_idx,
-                        int32_t move_amount)
+                        int32_t move_amount,
+                        bool visualize_colliders)
 {
     Action action { 
-        .v = move_amount
+        .v = move_amount,
+        .vizColliders = visualize_colliders
     };
 
     auto *action_ptr = impl_->agentActionsBuffer +

@@ -44,6 +44,7 @@ enum class SimObject : uint32_t {
 
 struct Action {
     int v;
+    bool vizColliders;
 };
 
 struct ActorArchetype : public madrona::Archetype<
@@ -95,6 +96,8 @@ struct Sim : public madrona::WorldBase {
     Entity plane;
 
     Entity carHinge;
+
+    Entity urdf;
 };
 
 class Engine : public ::madrona::CustomContext<Engine, Sim> {

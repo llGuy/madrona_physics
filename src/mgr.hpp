@@ -33,7 +33,7 @@ public:
 
     madrona::render::RenderManager & getRenderManager();
 
-    void setAction(int32_t agent_idx, int32_t move_amount);
+    void setAction(int32_t agent_idx, int32_t move_amount, bool viz_colliders);
 
 private:
     struct Impl;

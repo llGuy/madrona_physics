@@ -44,6 +44,9 @@ void Sim::registerTypes(ECSRegistry &registry, const Config &cfg)
 void actionTask(Engine &ctx,
                 Action &action)
 {
+    cv::setColliderVisualizer(
+            ctx, ctx.data().urdf, action.vizColliders);
+
 #if 0
     if (action.v == 1) {
         Entity hinge = ctx.data().carHinge;
@@ -1339,13 +1342,14 @@ static void makeExampleConfig0(Engine &ctx,
 Entity createURDFModel(Engine &ctx,
                        const Sim::Config &cfg)
 {
-    Entity urdf_model = cv::loadModel(
+    Entity urdf_model1 = cv::loadModel(
             ctx, cfg.modelConfigs[0], cfg.modelData,
             Vector3 { 0.f, 0.f, 0.f },
             Quat::id(),
             40.f);
+    cv::setColliderVisualizer(ctx, urdf_model1, true);
 
-    return urdf_model;
+    return urdf_model1;
 }
 
 void Sim::makePhysicsObjects(Engine &ctx,

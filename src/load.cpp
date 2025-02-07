@@ -69,7 +69,8 @@ uint32_t AssetLoader::addURDF(const std::string &path)
         path.c_str(),
         prims,
         impl->renderAssetPaths,
-        impl->physicsAssetPaths);
+        impl->physicsAssetPaths,
+        true);
 }
 
 static void postProcessPaths(std::vector<std::string> &paths)
@@ -135,10 +136,12 @@ URDFExport AssetLoader::finish(
 
             for (const imp::SourceMesh &mesh : meshes) {
                 src_convex_hulls.push_back(mesh);
+                src_convex_hulls.back().name = impl->physicsAssetPaths[obj_id].c_str();
                 prims.push_back({
                     .type = CollisionPrimitive::Type::Hull,
                     .hullInput = {
                         .hullIDX = uint32_t(src_convex_hulls.size() - 1),
+                        .name = impl->physicsAssetPaths[obj_id].c_str()
                     },
                 });
             }

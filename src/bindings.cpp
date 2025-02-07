@@ -1,6 +1,7 @@
 #if 1
 #include "mgr.hpp"
 
+#include <imgui.h>
 #include <signal.h>
 #include <madrona/macros.hpp>
 #include <madrona/window.hpp>
@@ -182,21 +183,22 @@ struct AppWrapper {
         });
 
         uint32_t step_i = 0;
+        bool visualize_colliders = false;
 
         // Main loop for the viewer viewer
         viewer.loop(
             [this](CountT /* world_idx */, const Viewer::UserInput & input) {
                 // No input
             }
-            , [this](CountT /* world_idx */, CountT /* agent_idx */,
+            , [this, &visualize_colliders](CountT /* world_idx */, CountT /* agent_idx */,
                    const Viewer::UserInput & input) {
                 // No input
                 if (input.keyPressed(Viewer::KeyboardKey::W)) {
-                    mgr->setAction(0, 1);
+                    mgr->setAction(0, 1, visualize_colliders);
                 } else if (input.keyPressed(Viewer::KeyboardKey::S)) {
-                    mgr->setAction(0, -1);
+                    mgr->setAction(0, -1, visualize_colliders);
                 } else {
-                    mgr->setAction(0, 0);
+                    mgr->setAction(0, 0, visualize_colliders);
                 }
             }, [this, &step_i]() {
                 mgr->step();
@@ -206,8 +208,13 @@ struct AppWrapper {
                     // exit(0);
                 }
                 step_i++;
-            }, [this]() {
+            }, [this, &visualize_colliders]() {
                 // No ImGui windows for now
+                ImGui::Begin("CVDebug");
+
+                ImGui::Checkbox("Visualize Colliders", &visualize_colliders);
+
+                ImGui::End();
             });
     }
 };
