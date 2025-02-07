@@ -1279,7 +1279,7 @@ static void createFloorPlane(Engine &ctx)
                 .initialRot = Quat::angleAxis(0.0f, { 0.f, 0.f, 1.f }),
                 .responseType = phys::ResponseType::Static,
                 .numCollisionObjs = 1,
-                .numVisualObjs = 1,
+                .numVisualObjs = 0,
                 .mass = plane_mass,
                 .inertia = plane_inertia,
                 .muS = 0.8f,
@@ -1295,6 +1295,7 @@ static void createFloorPlane(Engine &ctx)
                 .rotation = Quat::id(),
                 .scale = Diag3x3 { 0.03f, 0.03f, 0.03f },
             });
+#if 0
         cv::attachVisual(
             ctx, grp, l0, 0,
             cv::VisualDesc {
@@ -1303,6 +1304,7 @@ static void createFloorPlane(Engine &ctx)
                 .rotation = Quat::id(),
                 .scale = Diag3x3 { 0.03f, 0.03f, 0.03f },
             });
+#endif
     }
 
     { // Now, we need to specify the relationship between these links
@@ -1347,7 +1349,7 @@ Entity createURDFModel(Engine &ctx,
             Vector3 { 0.f, 0.f, 0.f },
             Quat::id(),
             40.f);
-    cv::setColliderVisualizer(ctx, urdf_model1, true);
+    cv::setColliderVisualizer(ctx, urdf_model1, false);
 
     return urdf_model1;
 }

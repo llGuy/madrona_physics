@@ -109,10 +109,6 @@ URDFExport AssetLoader::finish(
     { // Physics first
         postProcessPaths(impl->physicsAssetPaths);
 
-        for (auto path : impl->physicsAssetPaths) {
-            printf("Physics model path: %s\n", path.c_str());
-        }
-
         std::vector<const char *> physics_cstrs =
             makeCStrings(impl->physicsAssetPaths);
 
