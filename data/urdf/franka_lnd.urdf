@@ -297,7 +297,7 @@
     <collision name="main_insertion_link_collision_1">
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://meshes/obj/tool_main_insertion_link_collision_1.obj"/>
+        <mesh filename="package://meshes/obj/tool_main_insertion_link_collision_1.test.obj"/>
       </geometry>
     </collision>
   </link>
@@ -320,19 +320,19 @@
     <collision name="tool_roll_link_collision_0">
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://meshes/obj/lnd_roll_link_collision_0.obj"/>
+        <mesh filename="package://meshes/obj/lnd_roll_link_collision_0.test.obj"/>
       </geometry>
     </collision>
     <collision name="tool_roll_link_collision_1">
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://meshes/obj/lnd_roll_link_collision_1.obj"/>
+        <mesh filename="package://meshes/obj/lnd_roll_link_collision_1.test.obj"/>
       </geometry>
     </collision>
     <collision name="tool_roll_link_collision_2">
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://meshes/obj/lnd_roll_link_collision_2.obj"/>
+        <mesh filename="package://meshes/obj/lnd_roll_link_collision_2.test.obj"/>
       </geometry>
     </collision>
   </link>
@@ -356,19 +356,19 @@
     <collision name="tool_pitch_link_collision_0">
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://meshes/obj/lnd_pitch_link_collision_0.obj"/>
+        <mesh filename="package://meshes/obj/lnd_pitch_link_collision_0.test.obj"/>
       </geometry>
     </collision>
     <collision name="tool_pitch_link_collision_1">
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://meshes/obj/lnd_pitch_link_collision_1.obj"/>
+        <mesh filename="package://meshes/obj/lnd_pitch_link_collision_1.test.obj"/>
       </geometry>
     </collision>
     <collision name="tool_pitch_link_collision_2">
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://meshes/obj/lnd_pitch_link_collision_2.obj"/>
+        <mesh filename="package://meshes/obj/lnd_pitch_link_collision_2.test.obj"/>
       </geometry>
     </collision>
   </link>
@@ -408,13 +408,13 @@
     <collision name="tool_gripper1_link_collision_0">
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://meshes/obj/lnd_gripper_link_collision_0.obj"/>
+        <mesh filename="package://meshes/obj/lnd_gripper_link_collision_0.test.obj"/>
       </geometry>
     </collision>
     <collision name="tool_gripper1_link_collision_1">
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://meshes/obj/lnd_gripper_link_collision_1.obj"/>
+        <mesh filename="package://meshes/obj/lnd_gripper_link_collision_1.test.obj"/>
       </geometry>
     </collision>
   </link>
@@ -437,13 +437,13 @@
     <collision name="tool_gripper2_link_collision_0">
       <origin rpy="0 3.1416 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://meshes/obj/lnd_gripper_link_collision_0.obj"/>
+        <mesh filename="package://meshes/obj/lnd_gripper_link_collision_0.test.obj"/>
       </geometry>
     </collision>
     <collision name="tool_gripper2_link_collision_1">
       <origin rpy="0 3.1416 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://meshes/obj/lnd_gripper_link_collision_1.obj"/>
+        <mesh filename="package://meshes/obj/lnd_gripper_link_collision_1.test.obj"/>
       </geometry>
     </collision>
   </link>
