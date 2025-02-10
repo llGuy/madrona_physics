@@ -262,6 +262,7 @@ Manager::Impl * Manager::Impl::init(
     sim_cfg.autoReset = false;
     sim_cfg.initRandKey = rand::initKey(mgr_cfg.randSeed);
     sim_cfg.cvxSolve = mgr_cfg.cvxSolve;
+    sim_cfg.urdfTest = true;
 
     AssetLoader asset_loader (
         BuiltinAssets {
@@ -293,7 +294,12 @@ Manager::Impl * Manager::Impl::init(
 
         PhysicsLoader phys_loader(mgr_cfg.execMode, 100);
 
-        loadAssets(asset_loader, phys_loader, render_mgr);
+        URDFExport urdf_export = loadAssets(asset_loader, phys_loader, render_mgr);
+        URDFExport urdf_cpy = urdf_export.makeGPUCopy(urdf_export);
+
+        sim_cfg.numModelConfigs = urdf_cpy.numModelConfigs;
+        sim_cfg.modelConfigs = urdf_cpy.modelConfigs;
+        sim_cfg.modelData = urdf_cpy.modelData;
 
         ObjectManager *phys_obj_mgr = &phys_loader.getObjectManager();
         sim_cfg.rigidBodyObjMgr = phys_obj_mgr;

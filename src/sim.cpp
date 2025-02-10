@@ -44,21 +44,22 @@ void Sim::registerTypes(ECSRegistry &registry, const Config &cfg)
 void actionTask(Engine &ctx,
                 Action &action)
 {
-    cv::setColliderVisualizer(
-            ctx, ctx.data().urdf, action.vizColliders);
-
-#if 0
-    if (action.v == 1) {
-        Entity hinge = ctx.data().carHinge;
-        cv::addHingeExternalForce(ctx, hinge, 70.f);
-    } else if (action.v == -1) {
-        Entity hinge = ctx.data().carHinge;
-        cv::addHingeExternalForce(ctx, hinge, -70.f);
-    } else {
-        Entity hinge = ctx.data().carHinge;
-        cv::addHingeExternalForce(ctx, hinge, 0.f);
+    if (ctx.data().urdfTest) {
+        cv::setColliderVisualizer(
+                ctx, ctx.data().urdf, action.vizColliders);
     }
-#endif
+    else {
+        if (action.v == 1) {
+            Entity hinge = ctx.data().carHinge;
+            cv::addHingeExternalForce(ctx, hinge, 70.f);
+        } else if (action.v == -1) {
+            Entity hinge = ctx.data().carHinge;
+            cv::addHingeExternalForce(ctx, hinge, -70.f);
+        } else {
+            Entity hinge = ctx.data().carHinge;
+            cv::addHingeExternalForce(ctx, hinge, 0.f);
+        }
+    }
 }
 
 #ifdef MADRONA_GPU_MODE
@@ -1253,7 +1254,7 @@ static void createExampleBodyGroup2(Engine &ctx)
 #endif
 }
 
-static void createFloorPlane(Engine &ctx)
+static void createFloorPlane(Engine &ctx, bool visible)
 {
     Entity grp = cv::makeBodyGroup(ctx, 1);
 
@@ -1279,7 +1280,7 @@ static void createFloorPlane(Engine &ctx)
                 .initialRot = Quat::angleAxis(0.0f, { 0.f, 0.f, 1.f }),
                 .responseType = phys::ResponseType::Static,
                 .numCollisionObjs = 1,
-                .numVisualObjs = 0,
+                .numVisualObjs = visible ? 1u : 0u,
                 .mass = plane_mass,
                 .inertia = plane_inertia,
                 .muS = 0.8f,
@@ -1295,16 +1296,17 @@ static void createFloorPlane(Engine &ctx)
                 .rotation = Quat::id(),
                 .scale = Diag3x3 { 0.03f, 0.03f, 0.03f },
             });
-#if 0
-        cv::attachVisual(
-            ctx, grp, l0, 0,
-            cv::VisualDesc {
-                .objID = (uint32_t)SimObject::Plane,
-                .offset = Vector3::all(0.f),
-                .rotation = Quat::id(),
-                .scale = Diag3x3 { 0.03f, 0.03f, 0.03f },
-            });
-#endif
+
+        if (visible) {
+            cv::attachVisual(
+                ctx, grp, l0, 0,
+                cv::VisualDesc {
+                    .objID = (uint32_t)SimObject::Plane,
+                    .offset = Vector3::all(0.f),
+                    .rotation = Quat::id(),
+                    .scale = Diag3x3 { 0.03f, 0.03f, 0.03f },
+                });
+        }
     }
 
     { // Now, we need to specify the relationship between these links
@@ -1363,38 +1365,42 @@ void Sim::makePhysicsObjects(Engine &ctx,
             physicsSolverSelector,
             (CVXSolve *)cfg.cvxSolve);
 
+    if (cfg.urdfTest) {
+        createURDFModel(ctx, cfg);
+
+        createFloorPlane(ctx, false);
+    } else {
+        // createExampleBodyGroup2(ctx);
+        // createExampleBodyGroup1(ctx);
+        // createExampleSlider(ctx);
+        // createExampleArm(ctx);
+        // createFixedBodyTest(ctx);
+
+        createCar2(ctx);
+
+        // createWheelessCar(ctx);
+
+        Entity actor = ctx.makeEntity<ActorArchetype>();
+        ctx.get<Action>(actor).v = 0;
+
+        createFloorPlane(ctx, true);
+
 #if 0
-    // createExampleBodyGroup2(ctx);
-    createExampleBodyGroup1(ctx);
-    // createExampleSlider(ctx);
-    // createExampleArm(ctx);
-    // createFixedBodyTest(ctx);
-    // createCar2(ctx);
-    // createWheelessCar(ctx);
+        createObject(
+                ctx, 
+                { -40.f, -40.f, 10.f },
+                Quat::angleAxis(math::pi / 8.f, { 1.f, 1.f, 1.f }),
+                { 4.f, 4.f, 4.f },
+                SimObject::Cube);
 
-    Entity actor = ctx.makeEntity<ActorArchetype>();
-    ctx.get<Action>(actor).v = 0;
-
-#if 0
-    createObject(
-            ctx, 
-            { -40.f, -40.f, 10.f },
-            Quat::angleAxis(math::pi / 8.f, { 1.f, 1.f, 1.f }),
-            { 4.f, 4.f, 4.f },
-            SimObject::Cube);
-
-    createObject(
-            ctx, 
-            { -40.f, -40.f, 45.f },
-            Quat::angleAxis(math::pi / 8.f, { -1.f, 1.f, 1.f }),
-            { 4.f, 4.f, 4.f },
-            SimObject::Cube);
+        createObject(
+                ctx, 
+                { -40.f, -40.f, 45.f },
+                Quat::angleAxis(math::pi / 8.f, { -1.f, 1.f, 1.f }),
+                { 4.f, 4.f, 4.f },
+                SimObject::Cube);
 #endif
-#else
-    createURDFModel(ctx, cfg);
-#endif
-
-    createFloorPlane(ctx);
+    }
 }
 
 Sim::Sim(Engine &ctx,
@@ -1402,9 +1408,11 @@ Sim::Sim(Engine &ctx,
          const WorldInit &)
     : WorldBase(ctx)
 {
-    ctx.data().initRandKey = cfg.initRandKey;
-    ctx.data().rng = RNG(rand::split_i(ctx.data().initRandKey,
+    initRandKey = cfg.initRandKey;
+    rng = RNG(rand::split_i(ctx.data().initRandKey,
         0, (uint32_t)ctx.worldID().idx));
+
+    urdfTest = cfg.urdfTest;
 
     RenderingSystem::init(ctx, cfg.renderBridge);
 

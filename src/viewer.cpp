@@ -38,7 +38,7 @@ int main(int argc, char *argv[])
 
     WindowManager wm {};
     WindowHandle window = wm.makeWindow("Stick Viewer", 
-            2000, 1000);
+            3000, 1500);
 
     render::GPUHandle render_gpu = wm.initGPU(0, { window.get() });
 
@@ -65,14 +65,22 @@ int main(int argc, char *argv[])
 
     uint64_t step_iter = 0;
 
+    bool visualize_colliders = false;
+
     // Main loop for the viewer viewer
     viewer.loop(
         [&mgr](CountT /* world_idx */, const Viewer::UserInput &/* input */) {
             // No input
         }
-        , [&mgr](CountT /* world_idx */, CountT /* agent_idx */,
-               const Viewer::UserInput & /* input */) {
-            // No input
+        , [&mgr, &visualize_colliders](CountT /* world_idx */, CountT /* agent_idx */,
+               const Viewer::UserInput &input) {
+            if (input.keyPressed(Viewer::KeyboardKey::W)) {
+                mgr.setAction(0, 1, visualize_colliders);
+            } else if (input.keyPressed(Viewer::KeyboardKey::S)) {
+                mgr.setAction(0, -1, visualize_colliders);
+            } else {
+                mgr.setAction(0, 0, visualize_colliders);
+            }
         }, [&]() {
             auto start = std::chrono::system_clock::now();
 

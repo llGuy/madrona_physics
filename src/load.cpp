@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <madrona/urdf.hpp>
 #include <madrona/importer.hpp>
+#include <madrona/cuda_utils.hpp>
 
 using namespace madrona;
 using namespace madrona::imp;
@@ -267,12 +268,69 @@ URDFExport URDFExport::makeCPUCopy(URDFExport urdf_export)
     memcpy(cpy.modelData.visuals, urdf_export.modelData.visuals,
             sizeof(cv::VisualDesc) * cpy.modelData.numVisuals);
 
+    cpy.modelData.collisionDisables = (cv::CollisionDisable *)malloc(
+            sizeof(cv::CollisionDisable) * cpy.modelData.numCollisionDisables);
+    memcpy(cpy.modelData.collisionDisables, urdf_export.modelData.collisionDisables,
+            sizeof(cv::CollisionDisable) * cpy.modelData.numCollisionDisables);
+
+    cpy.modelData.jointLimits = (cv::JointLimit *)malloc(
+            sizeof(cv::JointLimit) * cpy.modelData.numJointLimits);
+    memcpy(cpy.modelData.jointLimits, urdf_export.modelData.jointLimits,
+            sizeof(cv::JointLimit) * cpy.modelData.numJointLimits);
+
     return cpy;
 }
 
 URDFExport URDFExport::makeGPUCopy(URDFExport urdf_export)
 {
-    
+    URDFExport cpy;
+    cpy.numModelConfigs = urdf_export.numModelConfigs;
+
+    cpy.modelConfigs = (cv::ModelConfig *)cu::allocGPU(
+            sizeof(cv::ModelConfig) * cpy.numModelConfigs);
+    REQ_CUDA(cudaMemcpy(cpy.modelConfigs, urdf_export.modelConfigs, 
+            sizeof(cv::ModelConfig) * cpy.numModelConfigs,
+            cudaMemcpyHostToDevice));
+
+    cpy.modelData = urdf_export.modelData;
+
+    cpy.modelData.bodies = (cv::BodyDesc *)cu::allocGPU(
+            sizeof(cv::BodyDesc) * cpy.modelData.numBodies);
+    REQ_CUDA(cudaMemcpy(cpy.modelData.bodies, urdf_export.modelData.bodies,
+            sizeof(cv::BodyDesc) * cpy.modelData.numBodies,
+            cudaMemcpyHostToDevice));
+
+    cpy.modelData.connections = (cv::JointConnection *)cu::allocGPU(
+            sizeof(cv::JointConnection) * cpy.modelData.numConnections);
+    REQ_CUDA(cudaMemcpy(cpy.modelData.connections, urdf_export.modelData.connections,
+            sizeof(cv::JointConnection) * cpy.modelData.numConnections,
+            cudaMemcpyHostToDevice));
+
+    cpy.modelData.colliders = (cv::CollisionDesc *)cu::allocGPU(
+            sizeof(cv::CollisionDesc) * cpy.modelData.numColliders);
+    REQ_CUDA(cudaMemcpy(cpy.modelData.colliders, urdf_export.modelData.colliders,
+            sizeof(cv::CollisionDesc) * cpy.modelData.numColliders,
+            cudaMemcpyHostToDevice));
+
+    cpy.modelData.visuals = (cv::VisualDesc *)cu::allocGPU(
+            sizeof(cv::VisualDesc) * cpy.modelData.numVisuals);
+    REQ_CUDA(cudaMemcpy(cpy.modelData.visuals, urdf_export.modelData.visuals,
+            sizeof(cv::VisualDesc) * cpy.modelData.numVisuals,
+            cudaMemcpyHostToDevice));
+
+    cpy.modelData.collisionDisables = (cv::CollisionDisable *)cu::allocGPU(
+            sizeof(cv::CollisionDisable) * cpy.modelData.numCollisionDisables);
+    REQ_CUDA(cudaMemcpy(cpy.modelData.collisionDisables, urdf_export.modelData.collisionDisables,
+            sizeof(cv::CollisionDisable) * cpy.modelData.numCollisionDisables,
+            cudaMemcpyHostToDevice));
+
+    cpy.modelData.jointLimits = (cv::JointLimit *)cu::allocGPU(
+            sizeof(cv::JointLimit) * cpy.modelData.numJointLimits);
+    REQ_CUDA(cudaMemcpy(cpy.modelData.jointLimits, urdf_export.modelData.jointLimits,
+            sizeof(cv::JointLimit) * cpy.modelData.numJointLimits,
+            cudaMemcpyHostToDevice));
+
+    return cpy;
 }
     
 }

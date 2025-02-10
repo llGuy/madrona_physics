@@ -71,6 +71,8 @@ struct Sim : public madrona::WorldBase {
         uint32_t numModelConfigs;
         madrona::phys::cv::ModelConfig *modelConfigs;
         madrona::phys::cv::ModelData modelData;
+
+        bool urdfTest;
     };
 
     struct WorldInit {};
@@ -98,6 +100,8 @@ struct Sim : public madrona::WorldBase {
     Entity carHinge;
 
     Entity urdf;
+    
+    bool urdfTest;
 };
 
 class Engine : public ::madrona::CustomContext<Engine, Sim> {
