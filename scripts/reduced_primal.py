@@ -50,6 +50,17 @@ def reduced_primal(M, a_free, v, J, J_e, mus, penetrations, eq_res,
         to be in the constrained space. For contacts,
         this is the dual of the friction cone
     """
+    
+    print(M)
+    print(a_free)
+    print(v)
+    print(J)
+    print(J_e)
+    print(mus)
+    print(penetrations)
+    print(diag_approx_c)
+    print(diag_approx_e)
+
     # Change the precision here
     precision = np.float32
 
@@ -133,6 +144,7 @@ def reduced_primal(M, a_free, v, J, J_e, mus, penetrations, eq_res,
 
     def get_norm_tangent_weights(jar, ms, idx):
         N, T1, T2 = jar[3 * idx], jar[3 * idx + 1], jar[3 * idx + 2]
+        print(f"N = {N}, T1 = {T1}, T2 = {T2}")
         T, mu = np.sqrt(T1 ** 2 + T2 ** 2), ms[idx]
         mid_weight = 1 / (1 + mu ** 2)
         return N, T1, T2, T, mu, mid_weight
