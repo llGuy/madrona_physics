@@ -1087,14 +1087,14 @@ static void createExampleBodyGroup1(Engine &ctx)
     { // Set joint limits
         cv::attachLimit(
             ctx, grp, l1,
-            cv::SliderLimit {
+            cv::HingeLimit {
                 .lower = 0.f,
                 .upper = math::pi / 8.f
             });
 
         cv::attachLimit(
             ctx, grp, l2,
-            cv::SliderLimit {
+            cv::HingeLimit {
                 .lower = 0.f,
                 .upper = math::pi / 8.f
             });
