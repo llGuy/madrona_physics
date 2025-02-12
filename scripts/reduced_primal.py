@@ -41,6 +41,23 @@ def get_aref(v, J, r, h, R, diag_approx, precision):
     return aref
 
 
+def adjust_contact_regularization(R, friction):
+    # Assuming each cone is dimension 3
+    cone_dim = 3
+    imp_ratio = 1.0
+    for i in range(0, len(R), cone_dim):
+        # Regularized cone mu is mu[1]*sqrt(R[1]/R[0])
+        mu = friction[1] * np.sqrt(R[i + 1] / R[i])
+        friction[i] = mu
+
+        # Set regularization for friction dimensions
+        R[i + 1] = R[i] / imp_ratio
+        for j in range(2, cone_dim):
+            R[i + j] = R[i + 1] * friction[1] * friction[1] / (
+                    friction[j] * friction[j])
+    return
+
+
 def reduced_primal(M, a_free, v, J, J_e, mus, penetrations, eq_res,
                    diag_approx_c, diag_approx_e, h, result):
     """
@@ -50,16 +67,16 @@ def reduced_primal(M, a_free, v, J, J_e, mus, penetrations, eq_res,
         to be in the constrained space. For contacts,
         this is the dual of the friction cone
     """
-    
-    print(M)
-    print(a_free)
-    print(v)
-    print(J)
-    print(J_e)
-    print(mus)
-    print(penetrations)
-    print(diag_approx_c)
-    print(diag_approx_e)
+
+    # print(M)
+    # print(a_free)
+    # print(v)
+    # print(J)
+    # print(J_e)
+    # print(mus)
+    # print(penetrations)
+    # print(diag_approx_c)
+    # print(diag_approx_e)
 
     # Change the precision here
     precision = np.float32
@@ -94,6 +111,14 @@ def reduced_primal(M, a_free, v, J, J_e, mus, penetrations, eq_res,
     a_ref = get_aref(v=v, J=J, r=r, h=h, R=R_c, diag_approx=diag_approx_c,
                      precision=precision)
 
+    # Require friction for all contact dimensions
+    cone_dim = 3
+    friction = np.zeros(num_contacts_pts * cone_dim, dtype=precision)
+    friction[1::cone_dim] = mus
+    friction[2::cone_dim] = mus
+    # Adjust regularization for contacts (and set friction[0::dim] = regularized mu)
+    adjust_contact_regularization(R_c, friction)
+
     # Get a_ref for equality constraint
     # r_e = np.zeros(J_e.shape[0], dtype=precision)
     r_e = eq_res
@@ -101,6 +126,10 @@ def reduced_primal(M, a_free, v, J, J_e, mus, penetrations, eq_res,
     # print(f"r_e = {r_e}")
     a_e_ref = get_aref(v=v, J=J_e, r=r_e, h=h, R=R_e, diag_approx=diag_approx_e,
                        precision=precision)
+
+    # Constraint mass
+    D_c = 1 / R_c
+    D_e = 1 / R_e
 
     # Define convex s and our objective
     def s(jar):
@@ -122,125 +151,88 @@ def reduced_primal(M, a_free, v, J, J_e, mus, penetrations, eq_res,
         cost = 0
 
         for i in range(len(jar) // 3):
-            N, T1, T2, T, mu, mid_weight = get_norm_tangent_weights(jar, mus, i)
+            N, T1, T2, T, mu, mid_weight = map_to_cone_space(jar, friction, i)
+            Dn, D1, D2 = D_c[3 * i], D_c[3 * i + 1], D_c[3 * i + 2]
             # Top zone
             if N >= mu * T:
                 pass
             # Bottom zone
             elif mu * N + T <= 0:
-                cost += 0.5 * (N ** 2 + T1 ** 2 + T2 ** 2)
+                cost += 0.5 * (Dn * jar[3 * i] ** 2 + D1 * jar[
+                    3 * i + 1] ** 2 + D2 * jar[3 * i + 2] ** 2)
             # Middle zone
             else:
-                cost += 0.5 * mid_weight * (N - mu * T) ** 2
+                cost += 0.5 * Dn * mid_weight * (N - mu * T) ** 2
         return cost
+
+    def map_to_cone_space(jar, frict, idx):
+        N, T1, T2 = jar[3 * idx], jar[3 * idx + 1], jar[3 * idx + 2]
+        mu = frict[3 * idx]
+        # Map to dual cone space
+        N = N * frict[3 * idx]
+        T1 = T1 * frict[3 * idx + 1]
+        T2 = T2 * frict[3 * idx + 2]
+
+        T = np.sqrt(T1 ** 2 + T2 ** 2)
+        mid_weight = 1 / (mu * mu * (1 + mu * mu))
+        return N, T1, T2, T, mu, mid_weight
 
     def s_equality(jar):
         cost = 0
-
         for i in range(len(jar)):
-            cost += 0.5 * jar[i] ** 2
-
+            cost += 0.5 * D_e[i] * jar[i] ** 2
         return cost
-
-    def get_norm_tangent_weights(jar, ms, idx):
-        N, T1, T2 = jar[3 * idx], jar[3 * idx + 1], jar[3 * idx + 2]
-        print(f"N = {N}, T1 = {T1}, T2 = {T2}")
-        T, mu = np.sqrt(T1 ** 2 + T2 ** 2), ms[idx]
-        mid_weight = 1 / (1 + mu ** 2)
-        return N, T1, T2, T, mu, mid_weight
 
     def ds(jar):
         out = np.zeros_like(jar)
 
         for i in range(len(jar) // 3):
-            N, T1, T2, T, mu, mid_weight = get_norm_tangent_weights(jar, mus, i)
+            N, T1, T2, T, mu, mid_weight = map_to_cone_space(jar, friction, i)
+            Dn, D1, D2 = D_c[3 * i], D_c[3 * i + 1], D_c[3 * i + 2]
             if N >= mu * T:
                 pass
             elif mu * N + T <= 0:
-                out[3 * i] = N
-                out[3 * i + 1] = T1
-                out[3 * i + 2] = T2
+                out[3 * i] = Dn * jar[3 * i]
+                out[3 * i + 1] = D1 * jar[3 * i + 1]
+                out[3 * i + 2] = D2 * jar[3 * i + 2]
             else:
-                tmp = mid_weight * (N - mu * T)
+                tmp = Dn * mid_weight * (N - mu * T) * mu
                 out[3 * i] = tmp
-                out[3 * i + 1] = -tmp * mu * T1 / T
-                out[3 * i + 2] = -tmp * mu * T2 / T
+                out[3 * i + 1] = -(tmp / T) * T1 * friction[3 * i + 1]
+                out[3 * i + 2] = -(tmp / T) * T2 * friction[3 * i + 2]
         return out
 
     def ds_equality(jar_e):
         out = np.zeros_like(jar_e)
         for i in range(len(jar_e)):
-            out[i] = jar_e[i]
+            out[i] = D_e[i] * jar_e[i]
         return out
 
-    def add_hessian_entry(
-            rows: np.ndarray,
-            cols: np.ndarray,
-            data: np.ndarray,
-            i: int, r: int, c: int, v: float):
-        """
-        Adds entry to the temporary storage for building the Hessian
-        """
-        rows[i], cols[i], data[i] = r, c, v
+    # Friction loss: Not implemented, but to add
+    D_f, R_f, floss = np.array([]), np.array([]), np.array([])
 
-    def hs(jar):
-        n_bottom, n_middle = 0, 0
-        for i in range(len(jar) // 3):
-            N, T1, T2, T, mu, mid_weight = get_norm_tangent_weights(jar, mus, i)
-            if N >= mu * T:
-                pass
-            elif mu * N + T <= 0:
-                n_bottom += 1
+    def s_friction(jar):
+        cost = 0
+        for i in range(len(jar)):
+            # Linear positive, linear negative, quadratic
+            if jar[i] <= -R_f[i] * floss[i]:
+                cost += -0.5 * R_f[i] * floss[i] * floss[i] - floss[i] * jar[i]
+            elif jar[i] >= R_f[i] * floss[i]:
+                cost += 0.5 * R_f[i] * floss[i] * floss[i] + floss[i] * jar[i]
             else:
-                n_middle += 1
+                cost += 0.5 * D_f[i] * jar[i] * jar[i]
+        return cost
 
-        # Build sparse matrix the inexpensive way
-        n_values = 3 * n_bottom + 9 * n_middle
-        # These store the (row, column) indices and values of the Hessian
-        rows, cols = np.zeros(n_values, dtype=np.uint32), np.zeros(n_values,
-                                                                   dtype=np.uint32)
-        data = np.zeros(n_values, dtype=np.float64)
-        idx = 0  # How many temporary values we have stored
-
-        for i in range(len(jar) // 3):
-            N, T1, T2, T, mu, mid_weight = get_norm_tangent_weights(jar, mus, i)
-            # Top zone
-            if N >= mu * T:
-                pass
-            elif mu * N + T <= 0:
-                N_idx, T1_idx, T2_idx = 3 * i, 3 * i + 1, 3 * i + 2
-                add_hessian_entry(rows, cols, data, idx, N_idx, N_idx, 1)
-                add_hessian_entry(rows, cols, data, idx + 1, T1_idx, T1_idx, 1)
-                add_hessian_entry(rows, cols, data, idx + 2, T2_idx, T2_idx, 1)
-                idx += 3
+    def ds_friction(jar):
+        out = np.zeros_like(jar)
+        for i in range(len(jar)):
+            if jar[i] <= -R_f[i] * floss[i]:
+                out[i] = -floss[i]
+            elif jar[i] >= R_f[i] * floss[i]:
+                out[i] = floss[i]
             else:
-                W = mid_weight
-                N_idx, T1_idx, T2_idx = 3 * i, 3 * i + 1, 3 * i + 2
-                # Respect to N
-                add_hessian_entry(rows, cols, data, idx, N_idx, N_idx, W)
-                add_hessian_entry(rows, cols, data, idx + 1, N_idx, T1_idx,
-                                  -W * mu * T1 / T)
-                add_hessian_entry(rows, cols, data, idx + 2, N_idx, T2_idx,
-                                  -W * mu * T2 / T)
-                # Respect to T1
-                add_hessian_entry(rows, cols, data, idx + 3, T1_idx, N_idx,
-                                  -W * mu * T1 / T)
-                add_hessian_entry(rows, cols, data, idx + 4, T1_idx, T1_idx,
-                                  W * mu * (mu - ((N * T2 ** 2) / T ** 3)))
-                add_hessian_entry(rows, cols, data, idx + 5, T1_idx, T2_idx,
-                                  W * mu * (N * T1 * T2) / T ** 3)
-                # Respect to T2
-                add_hessian_entry(rows, cols, data, idx + 6, T2_idx, N_idx,
-                                  -W * mu * T2 / T)
-                add_hessian_entry(rows, cols, data, idx + 7, T2_idx, T1_idx,
-                                  W * mu * (N * T1 * T2) / T ** 3)
-                add_hessian_entry(rows, cols, data, idx + 8, T2_idx, T2_idx,
-                                  W * mu * (mu - ((N * T1 ** 2) / T ** 3)))
-                idx += 9
-
-        hess = sp.csc_matrix((data, (rows, cols)),
-                             shape=(jar.shape[0], jar.shape[0]))
-        return hess
+                out[i] = D_f[i] * jar[i]
+        return out
 
     def obj(x):
         x_min_a_free = x - a_free
@@ -254,20 +246,10 @@ def reduced_primal(M, a_free, v, J, J_e, mus, penetrations, eq_res,
         return (M @ x_min_a_free) + J.T @ ds(
             J @ x - a_ref) + J_e.T @ ds_equality(J_e @ x - a_e_ref)
 
-    def h_obj(x):
-        # return HMatrix(A=M, E=J.T @ hs(J @ x - a_ref) @ J)
-        return M.M + J.T @ hs(J @ x - a_ref) @ J
-
     # Solve for x (\dot v)
     if num_contacts_pts == 0 and False:
         result[:] = a_free
     else:
-        # Tolerance of 1e-5 is around the lowest we can get with 32bit floats
-        #   and given the condition number of M
-        # a_solve = newton(df=d_obj, hess=h_obj, x0=a_free, tol=1e-5, M=M,
-        #                  a_free=a_free, J=J, a_ref=a_ref, mus=mus)
-
-        # Slower convergence but easier to implement
         tol, ls_tol = 1e-8, 0.01
         a_solve = nonlinear_cg(f=obj, df=d_obj, x0=a_free, tol=tol,
                                ls_tol=ls_tol, M=M, a_free=a_free, J=J, J_e=J_e,
@@ -277,3 +259,77 @@ def reduced_primal(M, a_free, v, J, J_e, mus, penetrations, eq_res,
         result[:] = a_solve
 
     return
+
+    # --- Unused Hessian code ---
+    # def h_obj(x):
+    #     # return HMatrix(A=M, E=J.T @ hs(J @ x - a_ref) @ J)
+    #     return M.M + J.T @ hs(J @ x - a_ref) @ J
+    # def add_hessian_entry(
+    #         rows: np.ndarray,
+    #         cols: np.ndarray,
+    #         data: np.ndarray,
+    #         i: int, r: int, c: int, v: float):
+    #     """
+    #     Adds entry to the temporary storage for building the Hessian
+    #     """
+    #     rows[i], cols[i], data[i] = r, c, v
+    #
+    # def hs(jar):
+    #     n_bottom, n_middle = 0, 0
+    #     for i in range(len(jar) // 3):
+    #         N, T1, T2, T, mu, mid_weight = map_to_cone_space(jar, friction, i)
+    #         if N >= mu * T:
+    #             pass
+    #         elif mu * N + T <= 0:
+    #             n_bottom += 1
+    #         else:
+    #             n_middle += 1
+    #
+    #     # Build sparse matrix the inexpensive way
+    #     n_values = 3 * n_bottom + 9 * n_middle
+    #     # These store the (row, column) indices and values of the Hessian
+    #     rows, cols = np.zeros(n_values, dtype=np.uint32), np.zeros(n_values,
+    #                                                                dtype=np.uint32)
+    #     data = np.zeros(n_values, dtype=np.float64)
+    #     idx = 0  # How many temporary values we have stored
+    #
+    #     for i in range(len(jar) // 3):
+    #         N, T1, T2, T, mu, mid_weight = map_to_cone_space(jar, friction, i)
+    #         # Top zone
+    #         if N >= mu * T:
+    #             pass
+    #         elif mu * N + T <= 0:
+    #             N_idx, T1_idx, T2_idx = 3 * i, 3 * i + 1, 3 * i + 2
+    #             add_hessian_entry(rows, cols, data, idx, N_idx, N_idx, 1)
+    #             add_hessian_entry(rows, cols, data, idx + 1, T1_idx, T1_idx, 1)
+    #             add_hessian_entry(rows, cols, data, idx + 2, T2_idx, T2_idx, 1)
+    #             idx += 3
+    #         else:
+    #             W = mid_weight
+    #             N_idx, T1_idx, T2_idx = 3 * i, 3 * i + 1, 3 * i + 2
+    #             # Respect to N
+    #             add_hessian_entry(rows, cols, data, idx, N_idx, N_idx, W)
+    #             add_hessian_entry(rows, cols, data, idx + 1, N_idx, T1_idx,
+    #                               -W * mu * T1 / T)
+    #             add_hessian_entry(rows, cols, data, idx + 2, N_idx, T2_idx,
+    #                               -W * mu * T2 / T)
+    #             # Respect to T1
+    #             add_hessian_entry(rows, cols, data, idx + 3, T1_idx, N_idx,
+    #                               -W * mu * T1 / T)
+    #             add_hessian_entry(rows, cols, data, idx + 4, T1_idx, T1_idx,
+    #                               W * mu * (mu - ((N * T2 ** 2) / T ** 3)))
+    #             add_hessian_entry(rows, cols, data, idx + 5, T1_idx, T2_idx,
+    #                               W * mu * (N * T1 * T2) / T ** 3)
+    #             # Respect to T2
+    #             add_hessian_entry(rows, cols, data, idx + 6, T2_idx, N_idx,
+    #                               -W * mu * T2 / T)
+    #             add_hessian_entry(rows, cols, data, idx + 7, T2_idx, T1_idx,
+    #                               W * mu * (N * T1 * T2) / T ** 3)
+    #             add_hessian_entry(rows, cols, data, idx + 8, T2_idx, T2_idx,
+    #                               W * mu * (mu - ((N * T1 ** 2) / T ** 3)))
+    #             idx += 9
+    #
+    #     hess = sp.csc_matrix((data, (rows, cols)),
+    #                          shape=(jar.shape[0], jar.shape[0]))
+    #     return hess
+    #
