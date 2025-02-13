@@ -11,6 +11,10 @@
 <!-- ================= -->
 <robot name="franka_lnd">
 
+  <mujoco>
+    <compiler meshdir="/home/luc/Development/madrona_physics/data/urdf/meshes/" balanceinertia="true" discardvisual="false"/>
+  </mujoco>
+
   <joint name="world_base_joint" type="fixed">
     <parent link="world"/>
     <child link="panda_link0"/>
