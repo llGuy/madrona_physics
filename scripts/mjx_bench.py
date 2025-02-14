@@ -35,7 +35,6 @@ with open(URDF_PATH) as file:
 
 mj_model = mujoco.MjModel.from_xml_string(xml)
 mj_data = mujoco.MjData(mj_model)
-renderer = mujoco.Renderer(mj_model)
 
 mjx_model = mjx.put_model(mj_model)
 mjx_data = mjx.put_data(mj_model, mj_data)
@@ -46,7 +45,7 @@ print(mjx_data.qpos, type(mjx_data.qpos), mjx_data.qpos.devices())
 scene_option = mujoco.MjvOption()
 scene_option.flags[mujoco.mjtVisFlag.mjVIS_JOINT] = True
 
-NUM_WORLDS = 32
+NUM_WORLDS = 1024
 NUM_STEPS = 1000
 
 batch = jax.vmap(lambda _ : mjx_data)(jp.arange(NUM_WORLDS))

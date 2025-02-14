@@ -1368,7 +1368,7 @@ void Sim::makePhysicsObjects(Engine &ctx,
     if (cfg.urdfTest) {
         createURDFModel(ctx, cfg);
 
-        createFloorPlane(ctx, false);
+        // createFloorPlane(ctx, false);
     } else {
         // createExampleBodyGroup2(ctx);
         // createExampleBodyGroup1(ctx);
