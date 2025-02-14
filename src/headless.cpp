@@ -30,7 +30,7 @@ struct HeadlessWrapper {
 
 int main(int argc, char *argv[])
 {
-    uint32_t num_worlds = 1;
+    uint32_t num_worlds = 32;
 
     Manager *mgr = new Manager (Manager::Config {
         .execMode = madrona::ExecMode::CUDA,
@@ -42,7 +42,7 @@ int main(int argc, char *argv[])
     HeadlessWrapper wrapper = {
         .mgr = mgr,
         .numWorlds = num_worlds,
-        .numSteps = 1,
+        .numSteps = 1000,
     };
 
     wrapper.run();

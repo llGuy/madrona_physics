@@ -51,6 +51,7 @@ NUM_STEPS = 1000
 
 batch = jax.vmap(lambda _ : mjx_data)(jp.arange(NUM_WORLDS))
 jit_step = jax.jit(jax.vmap(mjx.step, in_axes=(None, 0)))
+batch = jit_step(mjx_model, batch)
 
 print("Finished jit, running sim")
 start_time = time.perf_counter()
@@ -66,17 +67,3 @@ avg_step_time = 1000.0 * elapsed_time / NUM_STEPS
 
 print(f"FPS = {fps}")
 print(f"Average step time = {avg_step_time}")
-
-"""
-# Running Mujoco MJX simulation multi-world
-print("Running multi-world MJX")
-
-NUM_WORLDS = 1024
-
-batch = jax.vmap(lambda _ : mjx_data)(jp.arange(NUM_WORLDS))
-
-jit_step = jax.jit(jax.vmap(mjx.step, in_axes=(None, 0)))
-batch = jit_step(mjx_model, batch)
-
-print(batch.qpos)
-"""
