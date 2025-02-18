@@ -9,6 +9,8 @@ add_library(stick_cpu_impl STATIC
     ${STICK_SIMULATOR_SRCS}
 )
 
+option(LOAD_VULKAN "Load Vulkan libraries" ON)
+
 target_link_libraries(stick_cpu_impl
     PUBLIC
         madrona_mw_core
@@ -21,6 +23,15 @@ target_link_libraries(stick_cpu_impl
 add_library(stick_mgr STATIC
     mgr.hpp mgr.cpp load.cpp
 )
+
+if (NOT LOAD_VULKAN)
+    message(INFO "Disabling vulkan!")
+    target_compile_definitions(stick_mgr
+        PRIVATE
+            -DMGR_DISABLE_VULKAN)
+else ()
+    message(INFO "Vulkan was enabled")
+endif ()
 
 target_link_libraries(stick_mgr 
     PUBLIC

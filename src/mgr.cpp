@@ -56,6 +56,10 @@ static inline Optional<RenderGPUState> initRenderGPUState(
         }
     }
 
+#ifdef MGR_DISABLE_VULKAN
+    return Optional<RenderGPUState>::none();
+#endif
+
     auto render_api_lib = render::APIManager::loadDefaultLib();
     render::APIManager render_api_mgr(render_api_lib.lib());
     render::GPUHandle gpu = render_api_mgr.initGPU(mgr_cfg.gpuID);
@@ -99,7 +103,7 @@ static inline Optional<render::RenderManager> initRenderManager(
         .agentViewHeight = 64,
         .numWorlds = mgr_cfg.numWorlds,
         .maxViewsPerWorld = 4, // Just some dummy number - not used
-        .maxInstancesPerWorld = 32,
+        .maxInstancesPerWorld = 100,
         .execMode = mgr_cfg.execMode,
         .voxelCfg = {},
     });
@@ -262,7 +266,7 @@ Manager::Impl * Manager::Impl::init(
     sim_cfg.autoReset = false;
     sim_cfg.initRandKey = rand::initKey(mgr_cfg.randSeed);
     sim_cfg.cvxSolve = mgr_cfg.cvxSolve;
-    sim_cfg.urdfTest = true;
+    sim_cfg.envType = mgr_cfg.envType;
 
     AssetLoader asset_loader (
         BuiltinAssets {
