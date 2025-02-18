@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- ======================================================================= -->
+<!-- Copyright 2024 MedCVR Lab                                               -->
+<!-- ======================================================================= -->
+<!-- This file contains the description of the Franka robot with LND tool.   -->
+<!-- Adapted from the publicly available Franka URDF.                        -->
+<!-- Franka + LND400006 Tool -->
+
+<!-- ================= -->
+<!--       Joints      -->
+<!-- ================= -->
+<robot name="franka_lnd">
+
+  <joint name="world_base_joint" type="fixed">
+    <parent link="world"/>
+    <child link="panda_link0"/>
+    <origin rpy="0 0 0" xyz="0 0 0"/>
+  </joint>
+
+  <joint name="panda_joint1" type="revolute">
+    <safety_controller k_position="100.0" k_velocity="40.0" soft_lower_limit="-2.8973" soft_upper_limit="2.8973"/>
+    <origin rpy="0 0 0" xyz="0 0 0.333"/>
+    <parent link="panda_link0"/>
+    <child link="panda_link1"/>
+    <axis xyz="0 0 1"/>
+    <limit acceleration="15" effort="87" lower="-2.9671" upper="2.9671" velocity="2.5"/>
+    <dynamics D="1" K="7000" damping="0.003" friction="0.0" mu_coulomb="0" mu_viscous="16"/>
+  </joint>
+
+  <!-- ================= -->
+  <!--       Links       -->
+  <!-- ================= -->
+
+  <link name="world"/>
+
+  <link name="panda_link0">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://meshes/dae/link0.obj"/>
+      </geometry>
+    </visual>
+    <inertial>
+      <!-- Estimated guesses from CAD -->
+      <origin rpy="0 0 0" xyz="-0.041018 -0.00014 0.049974"/>
+      <mass value="0.629769"/>
+      <inertia ixx="0.00315" ixy="8.2904E-07" ixz="0.00015" iyy="0.00388" iyz="8.2299E-06" izz="0.004285"/>
+    </inertial>
+  </link>
+  <link name="panda_link1">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://meshes/dae/link1.obj"/>
+      </geometry>
+    </visual>
+    <inertial>
+      <origin rpy="0 0 0" xyz="0.003875 0.002081 -0.04762"/>
+      <mass value="4.970684"/>
+      <inertia ixx="0.70337" ixy="-0.00013900" ixz="0.0067720" iyy="0.70661" iyz="0.019169" izz="0.0091170"/>
+    </inertial>
+  </link>
+
+</robot>
