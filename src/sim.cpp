@@ -44,11 +44,8 @@ void Sim::registerTypes(ECSRegistry &registry, const Config &cfg)
 void actionTask(Engine &ctx,
                 Action &action)
 {
-    if (ctx.data().urdfTest) {
-        cv::setColliderVisualizer(
-                ctx, ctx.data().urdf, action.vizColliders);
-    }
-    else {
+    switch (ctx.data().envType) {
+    case EnvType::Car: {
         if (action.v == 1) {
             Entity hinge = ctx.data().carHinge;
             cv::addHingeExternalForce(ctx, hinge, 70.f);
@@ -59,7 +56,12 @@ void actionTask(Engine &ctx,
             Entity hinge = ctx.data().carHinge;
             cv::addHingeExternalForce(ctx, hinge, 0.f);
         }
+    } break;
+
+    default: {
+    } break;
     }
+
 }
 
 #ifdef MADRONA_GPU_MODE
@@ -1339,6 +1341,13 @@ static void makeExampleConfig0(Engine &ctx,
                     { 1.f, 0.f, 0.f });
 
             createObject(ctx, pos, rot, id_scale, SimObject::Stick);
+
+            createObject(
+                    ctx, 
+                    pos + Vector3 { 0.f, 0.f, 10.f },
+                    rot,
+                    { 4.f, 4.f, 4.f },
+                    SimObject::Cube);
         }
     }
 }
@@ -1365,41 +1374,26 @@ void Sim::makePhysicsObjects(Engine &ctx,
             physicsSolverSelector,
             (CVXSolve *)cfg.cvxSolve);
 
-    if (cfg.urdfTest) {
+    switch (cfg.envType) {
+    case EnvType::URDFTest: {
         createURDFModel(ctx, cfg);
 
-        // createFloorPlane(ctx, false);
-    } else {
-        // createExampleBodyGroup2(ctx);
-        // createExampleBodyGroup1(ctx);
-        // createExampleSlider(ctx);
-        // createExampleArm(ctx);
-        // createFixedBodyTest(ctx);
+        createFloorPlane(ctx, false);
+    } break;
 
+    case EnvType::Car: {
         createCar2(ctx);
-
-        // createWheelessCar(ctx);
 
         Entity actor = ctx.makeEntity<ActorArchetype>();
         ctx.get<Action>(actor).v = 0;
 
         createFloorPlane(ctx, true);
+    } break;
 
-#if 0
-        createObject(
-                ctx, 
-                { -40.f, -40.f, 10.f },
-                Quat::angleAxis(math::pi / 8.f, { 1.f, 1.f, 1.f }),
-                { 4.f, 4.f, 4.f },
-                SimObject::Cube);
-
-        createObject(
-                ctx, 
-                { -40.f, -40.f, 45.f },
-                Quat::angleAxis(math::pi / 8.f, { -1.f, 1.f, 1.f }),
-                { 4.f, 4.f, 4.f },
-                SimObject::Cube);
-#endif
+    case EnvType::FallingObjects: {
+        makeExampleConfig0(ctx, cfg);
+        createFloorPlane(ctx, true);
+    } break;
     }
 }
 
@@ -1412,7 +1406,7 @@ Sim::Sim(Engine &ctx,
     rng = RNG(rand::split_i(ctx.data().initRandKey,
         0, (uint32_t)ctx.worldID().idx));
 
-    urdfTest = cfg.urdfTest;
+    envType = cfg.envType;
 
     RenderingSystem::init(ctx, cfg.renderBridge);
 

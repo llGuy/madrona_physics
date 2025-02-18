@@ -24,9 +24,9 @@ from brax.training.agents.ppo import train as ppo
 from brax.training.agents.ppo import networks as ppo_networks
 from brax.io import html, mjcf, model
 
-xla_flags = os.environ.get('XLA_FLAGS', '')
-xla_flags += ' --xla_gpu_triton_gemm_any=True'
-os.environ['XLA_FLAGS'] = xla_flags
+# xla_flags = os.environ.get('XLA_FLAGS', '')
+# xla_flags += ' --xla_gpu_triton_gemm_any=True'
+# os.environ['XLA_FLAGS'] = xla_flags
 
 URDF_PATH = '../data/urdf/franka_lnd.urdf'
 

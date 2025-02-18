@@ -3,7 +3,7 @@
 #include <filesystem>
 #include <madrona/urdf.hpp>
 #include <madrona/importer.hpp>
-#ifdef MADRONA_GPU_MODE
+#ifdef MADRONA_CUDA_SUPPORT
 #include <madrona/cuda_utils.hpp>
 #endif
 
@@ -283,7 +283,7 @@ URDFExport URDFExport::makeCPUCopy(URDFExport urdf_export)
     return cpy;
 }
 
-#ifdef MADRONA_GPU_MODE
+#ifdef MADRONA_CUDA_SUPPORT
 URDFExport URDFExport::makeGPUCopy(URDFExport urdf_export)
 {
     URDFExport cpy;

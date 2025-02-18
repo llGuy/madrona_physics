@@ -5,6 +5,8 @@
 
 #include <madrona/physics.hpp>
 
+#include "sim.hpp"
+
 namespace madPhysics {
 
 // The Manager class encapsulates the linkage between the outside training
@@ -24,6 +26,7 @@ public:
         madrona::render::GPUDevice *extRenderDev = nullptr;
         madrona::phys::CVXSolve *cvxSolve = nullptr;
         bool headlessMode = false;
+        EnvType envType = EnvType::URDFTest;
     };
 
     Manager(const Config &cfg);
