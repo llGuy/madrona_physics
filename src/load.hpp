@@ -2,7 +2,7 @@
 
 #include <string>
 #include <madrona/optional.hpp>
-#include <madrona/cvphysics.hpp>
+#include <madrona/cv_load.hpp>
 #include <madrona/physics_loader.hpp>
 #include <madrona/render/render_mgr.hpp>
 

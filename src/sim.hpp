@@ -4,8 +4,9 @@
 #include <madrona/custom_context.hpp>
 #include <madrona/rand.hpp>
 #include <madrona/physics.hpp>
-#include <madrona/cvphysics.hpp>
 #include <madrona/render/ecs.hpp>
+
+#include <madrona/cv_load.hpp>
 
 namespace madPhysics {
 
