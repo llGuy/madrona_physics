@@ -264,7 +264,8 @@ NB_MODULE(madrona_stick, m) {
                 .numWorlds = (uint32_t)num_worlds,
                 .randSeed = 5,
                 .cvxSolve = solve_fn,
-                .headlessMode = true
+                .headlessMode = true,
+                .envType = EnvType::FallingObjects
             });
 
             new (self) HeadlessWrapper {
@@ -289,7 +290,7 @@ NB_MODULE(madrona_stick, m) {
                             int64_t num_worlds) {
             WindowManager wm {};
             WindowHandle window = wm.makeWindow("Stick Viewer",
-                    3000, 1500);
+                    1500, 750);
             render::GPUHandle render_gpu = wm.initGPU(0, { window.get() });
 
             CVXSolveData *solve_data = new CVXSolveData {
@@ -307,7 +308,8 @@ NB_MODULE(madrona_stick, m) {
                 .randSeed = 5,
                 .extRenderAPI = wm.gpuAPIManager().backend(),
                 .extRenderDev = render_gpu.device(),
-                .cvxSolve = solve_fn
+                .cvxSolve = solve_fn,
+                .envType = EnvType::FallingObjects
             });
 
             new (self) AppWrapper {

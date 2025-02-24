@@ -172,6 +172,7 @@ static void createObject(Engine &ctx,
                 .offset = Vector3::all(0.f),
                 .rotation = Quat::id(),
                 .scale = scale,
+                .renderObjID = -1
             });
         cv::attachVisual(
             ctx, grp, l0, 0,
@@ -434,7 +435,9 @@ static void makeExampleConfig0(Engine &ctx,
                     math::pi / 2.f,
                     { 1.f, 0.f, 0.f });
 
+#if 0
             createObject(ctx, pos, rot, id_scale, SimObject::Stick);
+#endif
 
             createObject(
                     ctx, 

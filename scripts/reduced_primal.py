@@ -68,15 +68,15 @@ def reduced_primal(M, a_free, v, J, J_e, mus, penetrations, eq_res,
         this is the dual of the friction cone
     """
 
-    # print(M)
-    # print(a_free)
-    # print(v)
-    # print(J)
-    # print(J_e)
-    # print(mus)
-    # print(penetrations)
-    # print(diag_approx_c)
-    # print(diag_approx_e)
+    print(f"M = {M}")
+    print(f"a_free = {a_free}")
+    print(f"v = {v}")
+    print(f"J = {J}")
+    print(f"J_e = {J_e}")
+    print(f"mus = {mus}")
+    print(f"penetrations = {penetrations}")
+    print(f"diag_approx_c = {diag_approx_c}")
+    print(f"diag_approx_e = {diag_approx_e}")
 
     # Change the precision here
     precision = np.float32
