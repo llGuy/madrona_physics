@@ -141,8 +141,16 @@ static void createObject(Engine &ctx,
             ctx, (int32_t)obj);
     Diag3x3 obj_inertia = PhysicsSystem::getObjectInertia(
             ctx, (int32_t)obj);
+
+    // Scale the mass and inertia tensor
+    obj_mass *= scale.d0 * scale.d1 * scale.d2;
+    obj_inertia.d0 *= scale.d0 * scale.d0 * obj_mass;
+    obj_inertia.d1 *= scale.d1 * scale.d1 * obj_mass;
+    obj_inertia.d2 *= scale.d2 * scale.d2 * obj_mass;
+
     float obj_mus = PhysicsSystem::getObjectMuS(
             ctx, (int32_t)obj);
+
 
     printf("Cube mu = %f\n", obj_mus);
 
