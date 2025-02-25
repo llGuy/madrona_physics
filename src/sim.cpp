@@ -133,7 +133,7 @@ static void createObject(Engine &ctx,
                          Diag3x3 scale,
                          SimObject obj)
 {
-    Entity grp = cv::makeBodyGroup(ctx, 1, 2.f);
+    Entity grp = cv::makeBodyGroup(ctx, 1, 1.f);
 
     Entity l0;
 
@@ -151,9 +151,6 @@ static void createObject(Engine &ctx,
 
     float obj_mus = PhysicsSystem::getObjectMuS(
             ctx, (int32_t)obj);
-
-
-    printf("Cube mu = %f\n", obj_mus);
 
     { // Create the body
         l0 = cv::makeBody(
@@ -444,15 +441,15 @@ static void makeExampleConfig0(Engine &ctx,
                     math::pi / 2.f,
                     { 1.f, 0.f, 0.f });
 
-#if 0
+#if 1
             createObject(ctx, pos, rot, id_scale, SimObject::Stick);
 #endif
 
             createObject(
                     ctx, 
-                    pos + Vector3 { 0.f, 0.f, 10.f },
+                    pos + Vector3 { 0.f, 0.f, 30.f },
                     rot,
-                    { 4.f, 4.f, 4.f },
+                    { 1.f, 1.f, 1.f },
                     SimObject::Cube);
         }
     }

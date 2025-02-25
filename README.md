@@ -10,3 +10,6 @@ Test bed for new Madrona physics features.
 - Get rid of shit in line 3351 cvhpyscis.cpp
 - REMEMBER THAT THERE IS ONLY ONE JOINT LIMIT PER ROW
 - Use atomics for the the column version of the equality jacobian
+
+- We can parallelize some parts of solveM
+- Attach limit to each DofObjectArchetype - useful for prepareSolver GPU backend

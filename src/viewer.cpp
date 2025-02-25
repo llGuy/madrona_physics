@@ -20,7 +20,7 @@ int main(int argc, char *argv[])
 
     uint32_t num_worlds = 1;
     madrona::ExecMode exec_mode = madrona::ExecMode::CUDA;
-    EnvType env_type = EnvType::FallingObjects;
+    EnvType env_type = EnvType::URDFTest;
 
     if (argc < 3) {
         printf("./stick_viewer [cpu|cuda] [num_worlds]\n");
