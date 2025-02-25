@@ -113,10 +113,16 @@ def cvx_solve(A, v0, mu, penetrations, result):
     return f.value
 
 
-def mass_solve(M, bias, v, J, mu, penetrations, h, result):
-    num_contacts_pts = int(J.shape[0] / 3)
-    C = -bias
+def lcp_solve(M, a_free, v, J, J_e, mus, penetrations, eq_res,
+              diag_approx_c, diag_approx_e, h, result):
+    C = M @ a_free
     M_inv = np.linalg.inv(M)
+
+    # Convert J from column-major to row-major
+    J = J.T
+    J_e = J_e.T
+
+    num_contacts_pts = int(J.shape[0] / 3)
 
     # Sparse matrices
     M_sc = scipy.sparse.csc_matrix(M)
@@ -127,7 +133,7 @@ def mass_solve(M, bias, v, J, mu, penetrations, h, result):
     if num_contacts_pts == 0:
         gen_forces = C
     else:
-        f = clarabel_solve(A, v0, mu, penetrations, num_contacts_pts)
+        f = clarabel_solve(A, v0, mus, penetrations, num_contacts_pts)
         contact_imp = (J_sc.T @ f) / h
         gen_forces = C + contact_imp
     res = scipy.sparse.linalg.spsolve(M_sc, gen_forces)
