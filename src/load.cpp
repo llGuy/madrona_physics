@@ -150,7 +150,7 @@ URDFExport AssetLoader::finish(
             src_objs.push_back(SourceCollisionObject {
                 .prims = Span<const SourceCollisionPrimitive>(
                         prim_arrays.back()),
-                .invMass = 0.5f,
+                .invMass = 0.5f, // TODO: Make this configurable
                 .friction = { 1.f, 2.f }
             });
         };
