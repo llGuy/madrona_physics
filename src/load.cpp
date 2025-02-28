@@ -73,7 +73,7 @@ uint32_t AssetLoader::addURDF(const std::string &path)
         prims,
         impl->renderAssetPaths,
         impl->physicsAssetPaths,
-        true);
+        true).idx;
 }
 
 static void postProcessPaths(std::vector<std::string> &paths)
